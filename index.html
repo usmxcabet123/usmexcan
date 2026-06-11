@@ -458,11 +458,12 @@ var DIAS_INFO={};
 GD.forEach(function(g){g.p.forEach(function(p){if(!DIAS_INFO[p.dia])DIAS_INFO[p.dia]={label:p.f,dia:p.dia};});});
 var DIAS_ORDEN=Object.keys(DIAS_INFO).sort(function(a,b){var na=parseInt(a),nb=parseInt(b);var ma=a.includes('Jun')?6:7,mb=b.includes('Jun')?6:7;return(ma*100+na)-(mb*100+nb);});
 
-var S={participantes:[],pronosticos:{},pronElim:{},especiales:{},resultados:{},resElim:{},resEspeciales:{campeon:'',goleador:''},pronGuardado:{},elimGuardado:{}};
+var S={participantes:[],pronosticos:{},pronElim:{},especiales:{},resultados:{},resElim:{},resEspeciales:{campeon:'',goleador:''},pronGuardado:{},elimGuardado:{},espGuardado:{}};
 function save(){try{localStorage.setItem(DATA_KEY,JSON.stringify(S));}catch(e){}}
 function load(){try{var d=localStorage.getItem(DATA_KEY);if(d)S=JSON.parse(d);}catch(e){}}
 load();
 if(!S.pronGuardado)S.pronGuardado={};
+if(!S.espGuardado)S.espGuardado={};
 if(!S.elimGuardado)S.elimGuardado={};
 
 var diaActivo=DIAS_ORDEN[0]||'11Jun';
@@ -698,16 +699,41 @@ function cargarEspeciales(){
   var cont=document.getElementById('especiales-container');
   if(!nombre){cont.innerHTML='<div class="msg">Selecciona tu nombre</div>';return;}
   if(!S.especiales[nombre])S.especiales[nombre]={campeon:'',goleador:''};
-  var esp=S.especiales[nombre];var reEsp=S.resEspeciales||{};
+  var esp=S.especiales[nombre];
+  var reEsp=S.resEspeciales||{};
+  var guardado=S.espGuardado[nombre]===true;
+  var dis=guardado?'disabled':'';
   var aCamp=reEsp.campeon&&esp.campeon&&esp.campeon.toLowerCase().trim()===reEsp.campeon.toLowerCase().trim();
   var aGol=reEsp.goleador&&esp.goleador&&esp.goleador.toLowerCase().trim()===reEsp.goleador.toLowerCase().trim();
-  var html='<div class="card card-rojo"><div style="font-size:22px;margin-bottom:4px;">&#127942;</div><div style="font-family:Bangers,cursive;font-size:17px;color:#c0392b;margin-bottom:3px;">Campeon del Torneo - <span style="color:var(--verde);">6 pts</span></div>';
+  var html='';
+  html+='<div class="card card-rojo">';
+  html+='<div style="font-size:22px;margin-bottom:4px;">&#127942;</div>';
+  html+='<div style="font-family:Bangers,cursive;font-size:17px;color:#c0392b;margin-bottom:3px;">Campeon del Torneo - <span style="color:var(--verde);">6 pts</span></div>';
   if(aCamp)html+='<div class="registrado-badge" style="margin-bottom:6px;"><div class="rb-icon">&#9989;</div><div class="rb-txt">CORRECTO! +6 pts</div></div>';
-  html+='<label>Quien va a ganar el Mundial 2026?</label><input type="text" value="'+(esp.campeon||'')+'" placeholder="Ej: Argentina, Brasil..." onchange="gEsp(\''+nombre+'\',\'campeon\',this.value)"/></div>';
-  html+='<div class="card card-oro"><div style="font-size:22px;margin-bottom:4px;">&#128095;</div><div style="font-family:Bangers,cursive;font-size:17px;color:var(--oro2);margin-bottom:3px;">Goleador del Torneo - <span style="color:var(--verde);">6 pts</span></div>';
+  html+='<label>Quien va a ganar el Mundial 2026?</label>';
+  html+='<input type="text" value="'+(esp.campeon||'')+'" '+dis+' placeholder="Ej: Argentina, Brasil..." onchange="gEsp(\''+nombre+'\',\'campeon\',this.value)"/>';
+  html+='</div>';
+  html+='<div class="card card-oro">';
+  html+='<div style="font-size:22px;margin-bottom:4px;">&#128095;</div>';
+  html+='<div style="font-family:Bangers,cursive;font-size:17px;color:var(--oro2);margin-bottom:3px;">Goleador del Torneo - <span style="color:var(--verde);">6 pts</span></div>';
   if(aGol)html+='<div class="registrado-badge" style="margin-bottom:6px;"><div class="rb-icon">&#9989;</div><div class="rb-txt">CORRECTO! +6 pts</div></div>';
-  html+='<label>Quien va a ser el maximo goleador?</label><input type="text" value="'+(esp.goleador||'')+'" placeholder="Ej: Messi, Mbappe..." onchange="gEsp(\''+nombre+'\',\'goleador\',this.value)"/></div>';
+  html+='<label>Quien va a ser el maximo goleador?</label>';
+  html+='<input type="text" value="'+(esp.goleador||'')+'" '+dis+' placeholder="Ej: Messi, Mbappe..." onchange="gEsp(\''+nombre+'\',\'goleador\',this.value)"/>';
+  html+='</div>';
+  if(guardado){
+    html+='<div class="registrado-badge"><div class="rb-icon">&#9989;</div><div><div style="font-family:Bangers,cursive;font-size:15px;color:#1e5c14;">Especiales Registrados!</div><div class="rb-txt">Campeon: '+esp.campeon+' | Goleador: '+esp.goleador+'</div></div></div>';
+  } else {
+    html+='<button class="btn-registrar" style="margin-top:10px;" onclick="regEspeciales(\''+nombre+'\')" >&#128190; Registrar mis especiales</button>';
+  }
   cont.innerHTML=html;
+}
+function regEspeciales(nombre){
+  if(!S.especiales[nombre]||!S.especiales[nombre].campeon||!S.especiales[nombre].goleador){
+    alert('Completa los dos campos: Campeon y Goleador antes de registrar.');return;
+  }
+  if(!confirm('Registrar especiales? No podras editarlos despues.'))return;
+  S.espGuardado[nombre]=true;save();
+  cargarEspeciales();
 }
 function gEsp(n,c,v){if(!S.especiales[n])S.especiales[n]={campeon:'',goleador:''};S.especiales[n][c]=v;save();}
 
