@@ -6,6 +6,7 @@
 <title>USMEXCAN 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--azul:#1a3a6e;--azul3:#0e1f3d;--oro:#c8a84b;--oro2:#a8882e;--oro3:#f0d080;--verde:#2d7a1f;--verde2:#1e5c14;--rojo:#c0392b;--fondo:#f0f4e8;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -384,23 +385,91 @@ var ADM_KEY='usmexcan_adm_supa';
 function getPass(){return localStorage.getItem(ADM_KEY)||'admin2026';}
 function isAdmin(){return sessionStorage.getItem('admOKsupa')==='1';}
 
-/* ─ SUPABASE FETCH HELPER ─ */
-async function sb(path,method,body,prefer){
-  var h={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
-  if(prefer)h['Prefer']=prefer;
-  var opts={method:method||'GET',headers:h};
-  if(body)opts.body=JSON.stringify(body);
-  try{
-    var r=await fetch(SUPA_URL+'/rest/v1/'+path,opts);
-    var t=await r.text();
-    if(!r.ok){console.error('SB',r.status,t);return null;}
-    return t?JSON.parse(t):[];
-  }catch(e){console.error('SB fetch error',e);return null;}
+/* ─ SUPABASE CLIENT (libreria oficial via CDN) ─ */
+var _supa=null;
+function getSupa(){
+  if(!_supa&&window.supabase){
+    _supa=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+  }
+  return _supa;
 }
-async function sbGet(t,q){return sb(t+(q?'?'+q:''),'GET');}
-async function sbUpsert(t,d){return sb(t,'POST',d,'return=representation,resolution=merge-duplicates');}
-async function sbDel(t,q){return sb(t+'?'+q,'DELETE');}
-async function sbPatch(t,q,d){return sb(t+'?'+q,'PATCH',d,'return=representation');}
+
+/* Wrappers que usan el cliente oficial */
+async function sbGet(table,query){
+  var db=getSupa();if(!db)return null;
+  var req=db.from(table).select('*');
+  if(query){
+    var parts=query.split('&');
+    parts.forEach(function(p){
+      if(p.startsWith('order=')){
+        var ord=p.replace('order=','');
+        var col=ord.replace('.asc','').replace('.desc','');
+        var asc=ord.includes('.asc');
+        req=req.order(col,{ascending:asc});
+      } else if(p.includes('=eq.')){
+        var kv=p.split('=eq.');req=req.eq(kv[0],kv[1]);
+      } else if(p.includes('=not.is.null')){
+        var col2=p.split('=not.is.null')[0];req=req.not(col2,'is',null);
+      }
+    });
+  }
+  var res=await req;
+  if(res.error){console.error('sbGet error',res.error);return null;}
+  return res.data;
+}
+
+var CONFLICT_COLS={
+  'participantes':'ci',
+  'pronosticos':'ci,partido_id',
+  'pronosticos_elim':'ci,partido_id',
+  'especiales':'ci',
+  'resultados':'partido_id',
+  'resultados_elim':'partido_id',
+  'resultados_especiales':'id',
+  'dias_guardados':'ci,dia',
+  'etapas_guardadas':'ci,etapa'
+};
+async function sbUpsert(table,data){
+  var db=getSupa();if(!db)return null;
+  var conflict=CONFLICT_COLS[table]||'id';
+  var res=await db.from(table).upsert(data,{onConflict:conflict,ignoreDuplicates:false});
+  if(res.error){console.error('sbUpsert error',table,JSON.stringify(res.error));return null;}
+  return res.data||true;
+}
+
+async function sbDel(table,query){
+  var db=getSupa();if(!db)return null;
+  var req=db.from(table).delete();
+  if(query){
+    var parts=query.split('&');
+    parts.forEach(function(p){
+      if(p.includes('=not.is.null')){
+        var col=p.split('=not.is.null')[0];req=req.not(col,'is',null);
+      } else if(p.includes('=eq.')){
+        var kv=p.split('=eq.');req=req.eq(kv[0],kv[1]);
+      } else if(p.includes('=neq.')){
+        var kv2=p.split('=neq.');req=req.neq(kv2[0],kv2[1]);
+      }
+    });
+  }
+  var res=await req;
+  if(res.error){console.error('sbDel error',table,res.error);}
+  return res.data;
+}
+
+async function sbPatch(table,query,data){
+  var db=getSupa();if(!db)return null;
+  var req=db.from(table).update(data);
+  if(query){
+    var parts=query.split('&');
+    parts.forEach(function(p){
+      if(p.includes('=eq.')){var kv=p.split('=eq.');req=req.eq(kv[0],kv[1]);}
+    });
+  }
+  var res=await req;
+  if(res.error){console.error('sbPatch error',res.error);return null;}
+  return res.data;
+}
 
 /* ─ ESTADO LOCAL ─ */
 var S={participantes:[],resultados:{},resElim:{},resEspeciales:{campeon:'',goleador:''}};
@@ -1043,20 +1112,24 @@ async function resetearDatos(){
   if(!confirm('Borrar TODOS los datos de Supabase? No se puede deshacer.'))return;
   if(!confirm('Ultima confirmacion: se borrara todo permanentemente.'))return;
   mostrarCargando(true);
-  await sbDel('pronosticos','id=gte.0');
-  await sbDel('pronosticos_elim','id=gte.0');
-  await sbDel('especiales','id=gte.0');
-  await sbDel('dias_guardados','ci=neq.xxx');
-  await sbDel('etapas_guardadas','ci=neq.xxx');
-  await sbDel('resultados','partido_id=neq.xxx');
-  await sbDel('resultados_elim','partido_id=neq.xxx');
+  // UUID primary key tables - filter by not null
+  await sbDel('pronosticos','id=not.is.null');
+  await sbDel('pronosticos_elim','id=not.is.null');
+  await sbDel('especiales','id=not.is.null');
+  await sbDel('participantes','id=not.is.null');
+  // Text/composite PK tables
+  await sbDel('dias_guardados','ci=not.is.null');
+  await sbDel('etapas_guardadas','ci=not.is.null');
+  await sbDel('resultados','partido_id=not.is.null');
+  await sbDel('resultados_elim','partido_id=not.is.null');
+  // Reset especiales row
   await sbPatch('resultados_especiales','id=eq.1',{campeon:'',goleador:''});
-  await sbDel('participantes','id=gte.0');
+  // Clear local cache
   S={participantes:[],resultados:{},resElim:{},resEspeciales:{campeon:'',goleador:''}};
   PC={};PE={};ESP={};PG={};EG={};ESPG={};
   mostrarCargando(false);
-  renderParticipantes();syncSel();actualizarAdm();
-  alert('Datos borrados.');
+  await cargarTodo(); // reload from Supabase to confirm clean state
+  alert('Todos los datos fueron borrados correctamente.');
 }
 
 /* ─ EXPORT EXCEL ─ */
