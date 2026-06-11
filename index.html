@@ -289,8 +289,7 @@ input.score{width:30px;padding:4px 2px;text-align:center;font-size:13px;font-wei
       <div class="pts-grid">
         <div class="pts-item" style="border-left-color:var(--azul);"><div class="pts-num azul">3</div><div class="pts-text">Score exacto<br/><span class="pts-tag" style="color:var(--azul);">Eliminatoria</span></div></div>
         <div class="pts-item" style="border-left-color:#888;"><div class="pts-num gris">1</div><div class="pts-text">Resultado correcto<br/><span class="pts-tag" style="color:#888;">Ganador o empate</span></div></div>
-        <div class="pts-item" style="border-left-color:var(--oro2);"><div class="pts-num oro">1</div><div class="pts-text">Alargue SI/NO<br/><span class="pts-tag" style="color:var(--oro2);">Extra</span></div></div>
-        <div class="pts-item" style="border-left-color:#c0392b;"><div class="pts-num rojo">1</div><div class="pts-text">Penales SI/NO<br/><span class="pts-tag" style="color:#c0392b;">Extra</span></div></div>
+        <div class="pts-item" style="border-left-color:var(--oro2);"><div class="pts-num oro">1</div><div class="pts-text">Acertar quien pasa<br/><span class="pts-tag" style="color:var(--oro2);">Solo si hay empate</span></div></div>
       </div>
     </div>
     <div class="card card-rojo">
@@ -332,7 +331,7 @@ input.score{width:30px;padding:4px 2px;text-align:center;font-size:13px;font-wei
 <div id="tab-eliminatoria" class="section">
   <div class="tab-title"><span class="tab-bar"></span>Pronosticos - Eliminatoria</div>
   <div class="card card-azul" style="margin-bottom:.7rem;font-size:11px;font-weight:700;color:#444;line-height:1.5;">
-    <strong style="color:var(--azul);">Puntaje:</strong> Exacto=3pts | Resultado=1pt | Alargue SI/NO=1pt | Penales SI/NO=1pt
+    <strong style="color:var(--azul);">Puntaje:</strong> Exacto=3pts | Resultado correcto=1pt | Quien pasa en empate=1pt extra
   </div>
   <div class="card" style="margin-bottom:.8rem;"><label>Selecciona tu nombre</label>
     <select id="sel-elim" onchange="cargarEliminatoria()"><option value="">Elige un participante</option></select>
@@ -398,9 +397,12 @@ input.score{width:30px;padding:4px 2px;text-align:center;font-size:13px;font-wei
     <div class="admin-stat"><span class="admin-stat-label">Participantes</span><span class="admin-stat-val" id="adm-p">0</span></div>
     <div class="admin-stat"><span class="admin-stat-label">Partidos grupos cargados</span><span class="admin-stat-val" id="adm-r">0</span></div>
     <div class="admin-stat"><span class="admin-stat-label">Pronosticos grupos</span><span class="admin-stat-val" id="adm-pr">0</span></div>
+
     <div class="section-title">Cargar Resultados</div>
-    <div class="grupo-filter" id="grupo-filter-adm"></div>
-    <div id="admin-resultados-container"></div>
+    <div class="btn-row" style="margin-bottom:.5rem;">
+      <button class="btn btn-verde" onclick="toggleAdminResultados(this)">&#128202; Mostrar / Ocultar Resultados</button>
+    </div>
+    <div id="admin-resultados-container" style="display:none;"></div>
     <div class="section-title">Exportar</div>
     <div class="btn-row">
       <button class="btn btn-excel" onclick="exportarExcel()">&#128190; Excel Completo</button>
@@ -652,7 +654,7 @@ function renderEtapa(nombre,id){
   var isDone=S.elimGuardado[nombre]&&S.elimGuardado[nombre][id];
   var html='<div class="etapa-header">'+ronda.n+'<span>'+ronda.ps.length+' partido'+(ronda.ps.length>1?'s':'')+'</span></div>';
   ronda.ps.forEach(function(p){
-    var pr=S.pronElim[nombre][p.id]||{l:'',v:'',alargue:'',penales:''};
+    var pr=S.pronElim[nombre][p.id]||{l:'',v:'',quienPasa:''};
     var res=S.resElim[p.id]||{};var played=res.l!==undefined&&res.l!=='';
     var dis=isDone?'disabled':'';
     html+='<div class="elim-match"><div class="elim-header"><span class="elim-ronda">'+ronda.n+'</span><span class="match-fecha">'+p.f+' '+p.h+' BOT</span><span class="match-estadio">'+est(p.c)+'</span></div><div class="elim-body">';
@@ -661,9 +663,14 @@ function renderEtapa(nombre,id){
     else html+='<div class="elim-scores"><input type="number" class="score" min="0" max="20" value="'+pr.l+'" '+dis+' onchange="gE(\''+nombre+'\',\''+p.id+'\',\'l\',this.value)"/><div class="elim-vs">-</div><input type="number" class="score" min="0" max="20" value="'+pr.v+'" '+dis+' onchange="gE(\''+nombre+'\',\''+p.id+'\',\'v\',this.value)"/></div><div style="font-size:9px;font-weight:700;color:var(--azul);margin-top:2px;">1pt res | 3pt exacto</div>';
     html+='</div><div class="elim-team"><div class="elim-flag">'+f(p.v)+'</div><div class="elim-name">'+p.v+'</div></div></div>';
     if(ronda.pa){
-      html+='<div class="extra-opts"><div class="extra-opts-title">OPCIONES EXTRA</div>';
-      html+='<div class="opts-row"><span class="opts-label">&#9201; Alargue:</span><div class="tick-group"><button class="tick-btn'+(pr.alargue==='SI'?' selected-si':'')+'" '+dis+' onclick="tE(\''+nombre+'\',\''+p.id+'\',\'alargue\',\'SI\',this)">SI</button><button class="tick-btn'+(pr.alargue==='NO'?' selected-no':'')+'" '+dis+' onclick="tE(\''+nombre+'\',\''+p.id+'\',\'alargue\',\'NO\',this)">NO</button></div><span class="pts-badge">1pt</span></div>';
-      html+='<div class="opts-row"><span class="opts-label">&#129354; Penales:</span><div class="tick-group"><button class="tick-btn'+(pr.penales==='SI'?' selected-si':'')+'" '+dis+' onclick="tE(\''+nombre+'\',\''+p.id+'\',\'penales\',\'SI\',this)">SI</button><button class="tick-btn'+(pr.penales==='NO'?' selected-no':'')+'" '+dis+' onclick="tE(\''+nombre+'\',\''+p.id+'\',\'penales\',\'NO\',this)">NO</button></div><span class="pts-badge">1pt</span></div>';
+      var pl2=parseInt(pr.l),pv2=parseInt(pr.v);
+      var hayEmpate=!isNaN(pl2)&&!isNaN(pv2)&&pr.l!==''&&pr.v!==''&&pl2===pv2;
+      var qp=pr.quienPasa||'';
+      var dqp=isDone?'disabled':'';
+      html+='<div class="extra-opts" id="qp_'+p.id+'" style="'+(hayEmpate?'':'display:none;')+'">';
+      html+='<div class="extra-opts-title">&#129300; EMPATE DETECTADO &mdash; &iquest;Quien pasa?</div>';
+      html+='<div style="font-size:11px;font-weight:700;color:#555;margin-bottom:6px;">Pronosticaste empate. Escribe el equipo que avanza: <span class="pts-badge">+1pt</span></div>';
+      html+='<input type="text" value="'+qp+'" placeholder="'+p.l+' o '+p.v+'..." '+dqp+' onchange="gQuienPasa(\''+nombre+'\',\''+p.id+'\',this.value)" style="font-size:12px;"/>';
       html+='</div>';
     }
     html+='</div></div>';
@@ -681,8 +688,9 @@ function regEtapa(nombre,id){
   S.elimGuardado[nombre][id]=true;save();
   initEtapaFilter(nombre);renderEtapa(nombre,id);
 }
-function gE(n,pid,c,v){if(!S.pronElim[n])S.pronElim[n]={};if(!S.pronElim[n][pid])S.pronElim[n][pid]={l:'',v:'',alargue:'',penales:''};S.pronElim[n][pid][c]=v;save();}
-function tE(n,pid,c,v,btn){if(!S.pronElim[n])S.pronElim[n]={};if(!S.pronElim[n][pid])S.pronElim[n][pid]={l:'',v:'',alargue:'',penales:''};if(S.pronElim[n][pid][c]===v){S.pronElim[n][pid][c]='';btn.classList.remove('selected-si','selected-no');}else{S.pronElim[n][pid][c]=v;btn.parentNode.querySelectorAll('.tick-btn').forEach(function(b){b.classList.remove('selected-si','selected-no');});btn.classList.add(v==='SI'?'selected-si':'selected-no');}save();}
+function gE(n,pid,c,v){if(!S.pronElim[n])S.pronElim[n]={};if(!S.pronElim[n][pid])S.pronElim[n][pid]={l:'',v:'',quienPasa:''};S.pronElim[n][pid][c]=v;save();var pr2=S.pronElim[n][pid];var pl3=parseInt(pr2.l),pv3=parseInt(pr2.v);var el=document.getElementById('qp_'+pid);if(el){if(!isNaN(pl3)&&!isNaN(pv3)&&pr2.l!==''&&pr2.v!==''&&pl3===pv3){el.style.display='';}else{el.style.display='none';pr2.quienPasa='';save();}}}
+
+function gQuienPasa(n,pid,v){if(!S.pronElim[n])S.pronElim[n]={};if(!S.pronElim[n][pid])S.pronElim[n][pid]={l:'',v:'',quienPasa:''};S.pronElim[n][pid].quienPasa=v;save();}
 
 /* ─ ESPECIALES ─ */
 function cargarEspeciales(){
@@ -755,14 +763,12 @@ function mostrarAdmin(){
     document.getElementById('admin-locked').style.display='none';
     document.getElementById('admin-panel').style.display='block';
     actualizarAdm();
-    initGF('grupo-filter-adm','grpAdm');
-    renderAdminResultados();
   }else{
     document.getElementById('admin-locked').style.display='block';
     document.getElementById('admin-panel').style.display='none';
   }
 }
-function verificarAdmin(){var p=document.getElementById('admin-pass').value;if(p===getPass()){sessionStorage.setItem('admOK3','1');document.getElementById('admin-error').style.display='none';document.getElementById('admin-locked').style.display='none';document.getElementById('admin-panel').style.display='block';actualizarAdm();initGF('grupo-filter-adm','grpAdm');renderAdminResultados();}else{document.getElementById('admin-error').style.display='block';}}
+function verificarAdmin(){var p=document.getElementById('admin-pass').value;if(p===getPass()){sessionStorage.setItem('admOK3','1');document.getElementById('admin-error').style.display='none';document.getElementById('admin-locked').style.display='none';document.getElementById('admin-panel').style.display='block';actualizarAdm();}else{document.getElementById('admin-error').style.display='block';}}
 function cerrarAdmin(){sessionStorage.removeItem('admOK3');document.getElementById('admin-locked').style.display='block';document.getElementById('admin-panel').style.display='none';}
 function cambiarPass(){var np=document.getElementById('new-pass').value.trim();if(!np){alert('Ingresa contrasena');return;}localStorage.setItem(ADM_KEY,np);document.getElementById('new-pass').value='';alert('Contrasena actualizada!');}
 function actualizarAdm(){
@@ -773,9 +779,9 @@ function actualizarAdm(){
 }
 function renderAdminResultados(){
   var cont=document.getElementById('admin-resultados-container');if(!cont)return;
-  var grupos=grpAdm==='TODOS'?GD:GD.filter(function(g){return g.g===grpAdm;});
-  var html='<div class="section-title" style="margin-top:0;">Grupos</div>';
-  grupos.forEach(function(g){
+  var html='<div class="section-title" style="margin-top:0;">Resultados de Grupos</div>';
+  var allGrupos=GD;
+  allGrupos.forEach(function(g){
     html+='<div class="card" style="margin-bottom:.6rem;"><div class="group-letter" style="margin-bottom:7px;">Grupo '+g.g+'</div>';
     g.p.forEach(function(p){
       var r=S.resultados[p.id]||{l:'',v:''};
@@ -783,16 +789,17 @@ function renderAdminResultados(){
     });
     html+='</div>';
   });
-  html+='<div class="section-title">Eliminatoria</div>';
+  html+='<div class="section-title">Resultados Eliminatoria</div>';
   ER.forEach(function(ronda){
     html+='<div class="card" style="margin-bottom:.6rem;"><div class="group-letter" style="margin-bottom:7px;">'+ronda.n+'</div>';
     ronda.ps.forEach(function(p){
-      var re=S.resElim[p.id]||{l:'',v:'',alargue:'',penales:''};
+      var re=S.resElim[p.id]||{l:'',v:'',quienPasa:''};
       html+='<div class="res-elim-block"><div style="font-size:12px;font-weight:800;color:#333;margin-bottom:6px;">'+f(p.l)+' '+p.l+' vs '+p.v+' '+f(p.v)+'<br/><span style="font-size:10px;color:#888;">'+p.f+' '+p.h+'</span></div>';
       html+='<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:4px;"><span style="font-size:11px;font-weight:700;color:#555;min-width:70px;">Marcador:</span><input type="number" class="score" style="width:28px;" min="0" max="20" value="'+re.l+'" placeholder="0" onchange="gRE(\''+p.id+'\',\'l\',this.value)"/><div class="vs-txt" style="color:#888;margin:0 3px;">-</div><input type="number" class="score" style="width:28px;" min="0" max="20" value="'+re.v+'" placeholder="0" onchange="gRE(\''+p.id+'\',\'v\',this.value)"/></div>';
       if(ronda.pa){
-        html+='<div style="display:flex;gap:4px;align-items:center;margin-bottom:3px;"><span style="font-size:11px;font-weight:700;color:#555;min-width:70px;">Alargue:</span><button class="tick-res'+(re.alargue==='SI'?' sel-si':'')+'" onclick="tRE(\''+p.id+'\',\'alargue\',\'SI\',this)">SI</button><button class="tick-res'+(re.alargue==='NO'?' sel-no':'')+'" onclick="tRE(\''+p.id+'\',\'alargue\',\'NO\',this)">NO</button></div>';
-        html+='<div style="display:flex;gap:4px;align-items:center;"><span style="font-size:11px;font-weight:700;color:#555;min-width:70px;">Penales:</span><button class="tick-res'+(re.penales==='SI'?' sel-si':'')+'" onclick="tRE(\''+p.id+'\',\'penales\',\'SI\',this)">SI</button><button class="tick-res'+(re.penales==='NO'?' sel-no':'')+'" onclick="tRE(\''+p.id+'\',\'penales\',\'NO\',this)">NO</button></div>';
+        var rl2=parseInt(re.l),rv2=parseInt(re.v);
+        var esEmpate=!isNaN(rl2)&&!isNaN(rv2)&&re.l!==''&&re.v!==''&&rl2===rv2;
+        html+='<div id="adm_qp_'+p.id+'" style="margin-top:5px;'+(esEmpate?'':'display:none;')+'"><span style="font-size:11px;font-weight:700;color:#555;">&#129300; Quien paso?: </span><input type="text" value="'+(re.quienPasa||'')+'" placeholder="Equipo que paso de ronda..." onchange="gRElimQPShow(\''+p.id+'\',this.value)" style="font-size:12px;margin-top:3px;"/></div>';
       }
       html+='</div>';
     });
@@ -803,13 +810,15 @@ function renderAdminResultados(){
   cont.innerHTML=html;
 }
 function gR(pid,l,v){if(!S.resultados[pid])S.resultados[pid]={l:'',v:''};S.resultados[pid][l]=v;save();}
-function gRE(pid,c,v){if(!S.resElim[pid])S.resElim[pid]={l:'',v:'',alargue:'',penales:''};S.resElim[pid][c]=v;save();}
-function tRE(pid,c,v,btn){if(!S.resElim[pid])S.resElim[pid]={l:'',v:'',alargue:'',penales:''};if(S.resElim[pid][c]===v){S.resElim[pid][c]='';btn.classList.remove('sel-si','sel-no');}else{S.resElim[pid][c]=v;btn.parentNode.querySelectorAll('.tick-res').forEach(function(b){b.classList.remove('sel-si','sel-no');});btn.classList.add(v==='SI'?'sel-si':'sel-no');}save();}
+function gRE(pid,c,v){if(!S.resElim[pid])S.resElim[pid]={l:'',v:'',quienPasa:''};S.resElim[pid][c]=v;save();var re2=S.resElim[pid];var rl3=parseInt(re2.l),rv3=parseInt(re2.v);var el2=document.getElementById('adm_qp_'+pid);if(el2){if(!isNaN(rl3)&&!isNaN(rv3)&&re2.l!==''&&re2.v!==''&&rl3===rv3){el2.style.display='';}else{el2.style.display='none';re2.quienPasa='';save();}}}
+function gRElimQP(pid,v){if(!S.resElim[pid])S.resElim[pid]={l:'',v:'',quienPasa:''};S.resElim[pid].quienPasa=v;save();}
+function gRElimQPShow(pid,v){gRElimQP(pid,v);}
+
 function gREsp(c,v){if(!S.resEspeciales)S.resEspeciales={campeon:'',goleador:''};S.resEspeciales[c]=v;save();}
 
 /* ─ CALCULOS ─ */
 function cPG(pron,real){if(pron.l===''||pron.v===''||real.l===''||real.v===''||pron.l===undefined||real.l===undefined)return null;var pl=parseInt(pron.l),pv=parseInt(pron.v),rl=parseInt(real.l),rv=parseInt(real.v);if(pl===rl&&pv===rv)return 3;function sg(a,b){return a>b?1:a<b?-1:0;}if(sg(pl,pv)===sg(rl,rv))return 1;return 0;}
-function cPE(pron,real,pa){var r={base:0,al:0,pe:0,total:0};if(pron.l===''||pron.v===''||real.l===''||real.v===''||pron.l===undefined||real.l===undefined)return r;var pl=parseInt(pron.l),pv=parseInt(pron.v),rl=parseInt(real.l),rv=parseInt(real.v);if(pl===rl&&pv===rv)r.base=3;else{function sg(a,b){return a>b?1:a<b?-1:0;}if(sg(pl,pv)===sg(rl,rv))r.base=1;}if(pa){if(pron.alargue&&real.alargue&&pron.alargue===real.alargue)r.al=1;if(pron.penales&&real.penales&&pron.penales===real.penales)r.pe=1;}r.total=r.base+r.al+r.pe;return r;}
+function cPE(pron,real){var r={base:0,qp:0,total:0};if(pron.l===''||pron.v===''||real.l===''||real.v===''||pron.l===undefined||real.l===undefined)return r;var pl=parseInt(pron.l),pv=parseInt(pron.v),rl=parseInt(real.l),rv=parseInt(real.v);if(pl===rl&&pv===rv)r.base=3;else{function sg(a,b){return a>b?1:a<b?-1:0;}if(sg(pl,pv)===sg(rl,rv))r.base=1;}if(pl===pv&&real.quienPasa&&pron.quienPasa&&pron.quienPasa.toLowerCase().trim()===real.quienPasa.toLowerCase().trim())r.qp=1;r.total=r.base+r.qp;return r;}
 
 /* ─ RANKING ─ */
 function calcRanking(){
@@ -820,7 +829,7 @@ function calcRanking(){
     var prons=S.pronosticos[p.nombre]||{};var pronEl=S.pronElim[p.nombre]||{};var esp=S.especiales[p.nombre]||{};
     var pts=0,exG=0,ganG=0,jugG=0,ptsEl=0,ptsEs=0;
     GD.forEach(function(g){g.p.forEach(function(part){var res=S.resultados[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=prons[part.id]||{l:'',v:''};var c=cPG(pr,res);if(c===null)return;jugG++;pts+=c;if(c===3)exG++;if(c===1)ganG++;});});
-    ER.forEach(function(ronda){ronda.ps.forEach(function(part){var res=S.resElim[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=pronEl[part.id]||{l:'',v:'',alargue:'',penales:''};var c=cPE(pr,res,ronda.pa);pts+=c.total;ptsEl+=c.total;});});
+    ER.forEach(function(ronda){ronda.ps.forEach(function(part){var res=S.resElim[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=pronEl[part.id]||{l:'',v:'',alargue:'',penales:''};var c=cPE(pr,res);pts+=c.total;ptsEl+=c.total;});});
     if(reEsp.campeon&&esp.campeon&&esp.campeon.toLowerCase().trim()===reEsp.campeon.toLowerCase().trim()){pts+=6;ptsEs+=6;}
     if(reEsp.goleador&&esp.goleador&&esp.goleador.toLowerCase().trim()===reEsp.goleador.toLowerCase().trim()){pts+=6;ptsEs+=6;}
     return{nombre:p.nombre,ci:p.ci,equipo:p.equipo||'',pts:pts,exG:exG,ganG:ganG,jugG:jugG,ptsEl:ptsEl,ptsEs:ptsEs};
@@ -864,12 +873,22 @@ function exportarRanking(){
   XLSX.utils.book_append_sheet(wb,ws,'Ranking');
   XLSX.writeFile(wb,'Ranking_USMEXCAN_'+new Date().toLocaleDateString('es-BO').replace(/\//g,'-')+'.xlsx');
 }
+function toggleAdminResultados(btn){
+  var div=document.getElementById('admin-resultados-container');
+  if(!div)return;
+  if(div.style.display==='none'){
+    div.style.display='';
+    renderAdminResultados();
+  } else {
+    div.style.display='none';
+  }
+}
 function calcScores(reEsp){
   return S.participantes.map(function(p){
     var prons=S.pronosticos[p.nombre]||{};var pronEl=S.pronElim[p.nombre]||{};var esp=S.especiales[p.nombre]||{};
     var pts=0,exG=0,ganG=0,jugG=0,ptsEl=0,ptsEs=0;
     GD.forEach(function(g){g.p.forEach(function(part){var res=S.resultados[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=prons[part.id]||{l:'',v:''};var c=cPG(pr,res);if(c===null)return;jugG++;pts+=c;if(c===3)exG++;if(c===1)ganG++;});});
-    ER.forEach(function(ronda){ronda.ps.forEach(function(part){var res=S.resElim[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=pronEl[part.id]||{l:'',v:'',alargue:'',penales:''};var c=cPE(pr,res,ronda.pa);pts+=c.total;ptsEl+=c.total;});});
+    ER.forEach(function(ronda){ronda.ps.forEach(function(part){var res=S.resElim[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=pronEl[part.id]||{l:'',v:'',alargue:'',penales:''};var c=cPE(pr,res);pts+=c.total;ptsEl+=c.total;});});
     if(reEsp.campeon&&esp.campeon&&esp.campeon.toLowerCase().trim()===reEsp.campeon.toLowerCase().trim()){pts+=6;ptsEs+=6;}
     if(reEsp.goleador&&esp.goleador&&esp.goleador.toLowerCase().trim()===reEsp.goleador.toLowerCase().trim()){pts+=6;ptsEs+=6;}
     return{nombre:p.nombre,ci:p.ci,equipo:p.equipo||'',pts:pts,exG:exG,ganG:ganG,jugG:jugG,ptsEl:ptsEl,ptsEs:ptsEs};
