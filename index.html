@@ -457,6 +457,25 @@ var ER=[
 var DIAS_INFO={};
 GD.forEach(function(g){g.p.forEach(function(p){if(!DIAS_INFO[p.dia])DIAS_INFO[p.dia]={label:p.f,dia:p.dia};});});
 var DIAS_ORDEN=Object.keys(DIAS_INFO).sort(function(a,b){var na=parseInt(a),nb=parseInt(b);var ma=a.includes('Jun')?6:7,mb=b.includes('Jun')?6:7;return(ma*100+na)-(mb*100+nb);});
+/* ─ TIEMPO ─ */
+function getMatchUTC(dia,h){
+  var day=parseInt(dia);
+  var mon=dia.includes('Jun')?5:6; /* 0-indexed: Jun=5, Jul=6 */
+  var parts=h.split(':');
+  var hh=parseInt(parts[0]),mm=parseInt(parts[1]||0);
+  /* BOT is UTC-4, match time is BOT, so UTC = BOT + 4 */
+  return new Date(Date.UTC(2026,mon,day,hh+4,mm,0));
+}
+function matchStarted(dia,h){
+  return new Date() >= getMatchUTC(dia,h);
+}
+/* Grupos terminan cuando el ultimo partido arranca: 27 Jun 22:00 BOT = 28 Jun 02:00 UTC */
+var GRUPOS_END_UTC=new Date(Date.UTC(2026,5,28,2,0,0));
+function gruposTerminados(){return new Date()>=GRUPOS_END_UTC;}
+/* Especiales deadline: 11 Jun 2026 15:00 BOT = 11 Jun 19:00 UTC */
+var ESP_DEADLINE_UTC=new Date(Date.UTC(2026,5,11,19,0,0));
+function espVencido(){return new Date()>=ESP_DEADLINE_UTC;}
+
 
 var S={participantes:[],pronosticos:{},pronElim:{},especiales:{},resultados:{},resElim:{},resEspeciales:{campeon:'',goleador:''},pronGuardado:{},elimGuardado:{},espGuardado:{}};
 function save(){try{localStorage.setItem(DATA_KEY,JSON.stringify(S));}catch(e){}}
@@ -588,6 +607,14 @@ function selDia(nombre,dia){diaActivo=dia;initDiaFilter(nombre);renderPronDia(no
 function renderPronDia(nombre,dia){
   var cont=document.getElementById('pronosticos-container');
   var info=DIAS_INFO[dia];
+  /* Auto-lock day if ALL matches of the day have already started */
+  var todosLosDia=[];
+  GD.forEach(function(g){g.p.forEach(function(p){if(p.dia===dia)todosLosDia.push(p);});});
+  var todosIniciados=todosLosDia.length>0&&todosLosDia.every(function(p){return matchStarted(dia,p.h);});
+  if(todosIniciados&&(!S.pronGuardado[nombre]||!S.pronGuardado[nombre][dia])){
+    if(!S.pronGuardado[nombre])S.pronGuardado[nombre]={};
+    S.pronGuardado[nombre][dia]=true;save();
+  }
   var guardadoDia=S.pronGuardado[nombre]&&S.pronGuardado[nombre][dia];
   var html='<div class="dia-header">'+info.label+'</div>';
   var hay=false;
@@ -600,8 +627,15 @@ function renderPronDia(nombre,dia){
       var res=S.resultados[p.id]||{};var played=res.l!==undefined&&res.l!=='';
       var ind='';
       if(played&&pr.l!==''){var pts=cPG(pr,res);ind='<span class="ri '+(pts===3?'c':pts===1?'p':'w')+'"></span>';}
-      var dis=guardadoDia?'disabled':'';
-      html+='<div class="match-block" style="margin-bottom:5px;"><div class="match-header"><span class="match-grupo">GRP '+g.g+'</span><span class="match-fecha">'+p.h+' BOT</span><span class="match-estadio">'+est(p.c)+'</span></div><div class="match-body"><div class="partido-wrap"><div class="equipo-blk"><div class="equipo-bandera">'+f(p.l)+'</div><div class="equipo-nombre">'+p.l+'</div></div><div class="marcador-blk" style="gap:3px;"><input type="number" class="score" min="0" max="20" value="'+pr.l+'" '+dis+' onchange="gP(\''+nombre+'\',\''+p.id+'\',\'l\',this.value)"/><div class="vs-txt">-</div><input type="number" class="score" min="0" max="20" value="'+pr.v+'" '+dis+' onchange="gP(\''+nombre+'\',\''+p.id+'\',\'v\',this.value)"/>'+ind+'</div><div class="equipo-blk"><div class="equipo-bandera">'+f(p.v)+'</div><div class="equipo-nombre">'+p.v+'</div></div></div></div></div>';
+      var started=matchStarted(dia,p.h);
+      var dis=(guardadoDia||started)?'disabled':'';
+      var lockMsg='';
+      if(started&&pr.l===''&&pr.v===''){
+        lockMsg='<div style="font-size:10px;font-weight:800;color:#c0392b;margin-top:3px;">&#128274; Partido iniciado - sin pronostico</div>';
+      } else if(started&&!guardadoDia){
+        lockMsg='<div style="font-size:10px;font-weight:800;color:#888;margin-top:3px;">&#128274; Partido iniciado</div>';
+      }
+      html+='<div class="match-block" style="margin-bottom:5px;"><div class="match-header"><span class="match-grupo">GRP '+g.g+'</span><span class="match-fecha">'+p.h+' BOT</span><span class="match-estadio">'+est(p.c)+'</span></div><div class="match-body"><div class="partido-wrap"><div class="equipo-blk"><div class="equipo-bandera">'+f(p.l)+'</div><div class="equipo-nombre">'+p.l+'</div></div><div class="marcador-blk" style="gap:3px;"><input type="number" class="score" min="0" max="20" value="'+pr.l+'" '+dis+' onchange="gP(\''+nombre+'\',\''+p.id+'\',\'l\',this.value)"/><div class="vs-txt">-</div><input type="number" class="score" min="0" max="20" value="'+pr.v+'" '+dis+' onchange="gP(\''+nombre+'\',\''+p.id+'\',\'v\',this.value)"/>'+ind+'</div><div class="equipo-blk"><div class="equipo-bandera">'+f(p.v)+'</div><div class="equipo-nombre">'+p.v+'</div></div></div>'+lockMsg+'</div></div>';
     });
     html+='</div>';
   });
@@ -609,8 +643,8 @@ function renderPronDia(nombre,dia){
   if(hay){
     if(guardadoDia){
       html+='<div class="registrado-badge"><div class="rb-icon">&#9989;</div><div><div style="font-family:Bangers,cursive;font-size:15px;color:#1e5c14;">Pronostico Registrado!</div><div class="rb-txt">'+info.label+' guardado.</div></div></div>';
-    }else{
-      html+='<button class="btn-registrar" onclick="regDia(\''+nombre+'\',\''+dia+'\')">&#128190; Registrar pronosticos del '+info.label+'</button>';
+    } else if(!todosIniciados){
+      html+='<button class="btn-registrar" onclick="regDia(\''+nombre+'\',\''+dia+'\')" >&#128190; Registrar pronosticos del '+info.label+'</button>';
     }
   }
   var prons=S.pronosticos[nombre]||{};var tot=0,comp=0;
@@ -634,6 +668,11 @@ function cargarEliminatoria(){
   var nombre=document.getElementById('sel-elim').value;
   var cont=document.getElementById('eliminatoria-container');
   var wrap=document.getElementById('etapa-filter-wrap');
+  if(!gruposTerminados()){
+    wrap.style.display='none';
+    cont.innerHTML='<div class="card" style="text-align:center;padding:1.5rem;"><div style="font-size:32px;margin-bottom:8px;">&#128274;</div><div style="font-family:Bangers,cursive;font-size:18px;color:var(--azul);margin-bottom:6px;">Eliminatoria bloqueada</div><div style="font-size:13px;font-weight:700;color:#666;">Los pronosticos de eliminatoria se habilitan una vez que finalice la fase de grupos (28 Jun 2026).</div></div>';
+    return;
+  }
   if(!nombre){cont.innerHTML='<div class="msg">Selecciona tu nombre</div>';wrap.style.display='none';return;}
   if(!S.pronElim[nombre])S.pronElim[nombre]={};
   wrap.style.display='block';
@@ -701,11 +740,22 @@ function cargarEspeciales(){
   if(!S.especiales[nombre])S.especiales[nombre]={campeon:'',goleador:''};
   var esp=S.especiales[nombre];
   var reEsp=S.resEspeciales||{};
+  /* Auto-lock especiales after deadline */
+  var vencido=espVencido();
+  if(vencido&&!S.espGuardado[nombre]){S.espGuardado[nombre]=true;save();}
   var guardado=S.espGuardado[nombre]===true;
-  var dis=guardado?'disabled':'';
+  var dis=(guardado||vencido)?'disabled':'';
   var aCamp=reEsp.campeon&&esp.campeon&&esp.campeon.toLowerCase().trim()===reEsp.campeon.toLowerCase().trim();
   var aGol=reEsp.goleador&&esp.goleador&&esp.goleador.toLowerCase().trim()===reEsp.goleador.toLowerCase().trim();
-  var html='';
+  /* Show deadline notice */
+  var deadlineHtml='';
+  if(!guardado&&!vencido){
+    deadlineHtml='<div class="alert-warn" style="background:#FFF3CD;border:2px solid #FFD700;border-radius:9px;padding:9px 12px;margin-bottom:10px;font-size:12px;font-weight:700;color:#856404;">&#9201; Fecha limite para registrar: <strong>11 Jun 2026 a las 15:00 BOT</strong></div>';
+  } else if(vencido&&!guardado){
+    deadlineHtml='<div style="background:#fdf2f2;border:2px solid #c0392b;border-radius:9px;padding:9px 12px;margin-bottom:10px;font-size:12px;font-weight:700;color:#c0392b;">&#128274; Plazo vencido. No se pueden registrar especiales.</div>';
+  }
+  var aGol=reEsp.goleador&&esp.goleador&&esp.goleador.toLowerCase().trim()===reEsp.goleador.toLowerCase().trim();
+  var html=deadlineHtml;
   html+='<div class="card card-rojo">';
   html+='<div style="font-size:22px;margin-bottom:4px;">&#127942;</div>';
   html+='<div style="font-family:Bangers,cursive;font-size:17px;color:#c0392b;margin-bottom:3px;">Campeon del Torneo - <span style="color:var(--verde);">6 pts</span></div>';
@@ -855,10 +905,10 @@ function calcRanking(){
     var prons=S.pronosticos[p.nombre]||{};var pronEl=S.pronElim[p.nombre]||{};var esp=S.especiales[p.nombre]||{};
     var pts=0,exG=0,ganG=0,jugG=0,ptsEl=0,ptsEs=0;
     GD.forEach(function(g){g.p.forEach(function(part){var res=S.resultados[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=prons[part.id]||{l:'',v:''};var c=cPG(pr,res);if(c===null)return;jugG++;pts+=c;if(c===3)exG++;if(c===1)ganG++;});});
-    ER.forEach(function(ronda){ronda.ps.forEach(function(part){var res=S.resElim[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=pronEl[part.id]||{l:'',v:'',alargue:'',penales:''};var c=cPE(pr,res);pts+=c.total;ptsEl+=c.total;});});
+    ER.forEach(function(ronda){ronda.ps.forEach(function(part){var res=S.resElim[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=pronEl[part.id]||{l:'',v:'',quienPasa:''};var c=cPE(pr,res);pts+=c.total;ptsEl+=c.total;});});
     if(reEsp.campeon&&esp.campeon&&esp.campeon.toLowerCase().trim()===reEsp.campeon.toLowerCase().trim()){pts+=6;ptsEs+=6;}
     if(reEsp.goleador&&esp.goleador&&esp.goleador.toLowerCase().trim()===reEsp.goleador.toLowerCase().trim()){pts+=6;ptsEs+=6;}
-    return{nombre:p.nombre,ci:p.ci,equipo:p.equipo||'',pts:pts,exG:exG,ganG:ganG,jugG:jugG,ptsEl:ptsEl,ptsEs:ptsEs};
+    return{nombre:p.nombre,ci:p.ci,equipo:p.equipo||'',pts:pts,exG:exG,ganG:ganG,jugG:jugG,ptsEl:ptsEl,ptsEs:ptsEs,campeon:esp.campeon||'',goleador:esp.goleador||'',acCamp:reEsp.campeon&&esp.campeon&&esp.campeon.toLowerCase().trim()===reEsp.campeon.toLowerCase().trim(),acGol:reEsp.goleador&&esp.goleador&&esp.goleador.toLowerCase().trim()===reEsp.goleador.toLowerCase().trim()};
   }).sort(function(a,b){return b.pts-a.pts||b.exG-a.exG;});
   var any=scores.some(function(s){return s.pts>0||s.jugG>0;});
   if(!any){cont.innerHTML='<div class="msg">Aun no hay resultados cargados</div>';return;}
@@ -876,18 +926,92 @@ function resetearDatos(){
 /* ─ EXPORT ─ */
 function exportarExcel(){
   if(!S.participantes.length){alert('No hay participantes.');return;}
-  var wb=XLSX.utils.book_new();var reEsp=S.resEspeciales||{};
+  var wb=XLSX.utils.book_new();
+  var reEsp=S.resEspeciales||{};
   var sc=calcScores(reEsp);
-  var d1=[['Pos','Nombre','CI','Equipo','Pts Total','Ex Grupos','Gan Grupos','Jug Grupos','Pts Elim','Pts Especiales']];
-  sc.forEach(function(p,i){d1.push([i+1,p.nombre,p.ci,p.equipo,p.pts,p.exG,p.ganG,p.jugG,p.ptsEl,p.ptsEs]);});
-  var ws1=XLSX.utils.aoa_to_sheet(d1);ws1['!cols']=[{wch:5},{wch:22},{wch:12},{wch:14},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:13}];
-  XLSX.utils.book_append_sheet(wb,ws1,'Ranking');
-  var allP=[];GD.forEach(function(g){g.p.forEach(function(p){allP.push(p);});});
-  var pd=[['Pos','Participante','Exactos Grupos','Pts Grupos']];
-  S.participantes.map(function(p,idx){var prons=S.pronosticos[p.nombre]||{};var ex=0,pts=0;allP.forEach(function(part){var res=S.resultados[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=prons[part.id]||{l:'',v:''};var c=cPG(pr,res);if(c===null)return;pts+=c;if(c===3)ex++;});return{nombre:p.nombre,ex:ex,pts:pts,idx:idx};}).sort(function(a,b){return b.ex-a.ex||b.pts-a.pts||a.idx-b.idx;}).forEach(function(p,i){pd.push([i+1,p.nombre,p.ex,p.pts]);});
-  var ws2=XLSX.utils.aoa_to_sheet(pd);ws2['!cols']=[{wch:5},{wch:22},{wch:16},{wch:12}];
-  XLSX.utils.book_append_sheet(wb,ws2,'Premio Exacto');
-  XLSX.writeFile(wb,'USMEXCAN2026_'+new Date().toLocaleDateString('es-BO').replace(/\//g,'-')+'.xlsx');
+
+  /* ── HOJA 1: Ranking Total ── */
+  var h1=[['Pos','Nombre','CI','Equipo Fav','Pts TOTAL','Pts Grupos','Pts Eliminat.','Pts Especiales']];
+  sc.forEach(function(p,i){
+    h1.push([i+1,p.nombre,p.ci,p.equipo,p.pts,p.exG*3+p.ganG,p.ptsEl,p.ptsEs]);
+  });
+  var ws1=XLSX.utils.aoa_to_sheet(h1);
+  ws1['!cols']=[{wch:5},{wch:22},{wch:12},{wch:16},{wch:12},{wch:13},{wch:14},{wch:15}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Ranking Total');
+
+  /* ── HOJA 2: Fase de Grupos ── */
+  var allP=[];GD.forEach(function(g){g.p.forEach(function(p){allP.push({id:p.id,f:p.f,l:p.l,v:p.v,g:g.g});});});
+  var h2=[['Pos','Nombre','CI','Pts Grupos','Exactos (3pts)','Ganador (1pt)','Partidos Jugados']];
+  S.participantes.map(function(p){
+    var prons=S.pronosticos[p.nombre]||{};
+    var ex=0,gan=0,jug=0,pts=0;
+    allP.forEach(function(part){
+      var res=S.resultados[part.id];if(!res||res.l===''||res.l===undefined)return;
+      var pr=prons[part.id]||{l:'',v:''};var c=cPG(pr,res);if(c===null)return;
+      jug++;pts+=c;if(c===3)ex++;if(c===1)gan++;
+    });
+    return{nombre:p.nombre,ci:p.ci,ex:ex,gan:gan,jug:jug,pts:pts};
+  }).sort(function(a,b){return b.pts-a.pts||b.ex-a.ex;}).forEach(function(p,i){
+    h2.push([i+1,p.nombre,p.ci,p.pts,p.ex,p.gan,p.jug]);
+  });
+  var ws2=XLSX.utils.aoa_to_sheet(h2);
+  ws2['!cols']=[{wch:5},{wch:22},{wch:12},{wch:12},{wch:14},{wch:13},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Fase de Grupos');
+
+  /* ── HOJA 3: Eliminatoria ── */
+  var h3=[['Pos','Nombre','CI','Pts Eliminat.','Quien Pasa Acertado']];
+  S.participantes.map(function(p){
+    var pronEl=S.pronElim[p.nombre]||{};
+    var pts=0,qpAc=0;
+    ER.forEach(function(ronda){ronda.ps.forEach(function(part){
+      var res=S.resElim[part.id];if(!res||res.l===''||res.l===undefined)return;
+      var pr=pronEl[part.id]||{l:'',v:'',quienPasa:''};
+      var c=cPE(pr,res);pts+=c.total;
+      if(c.qp>0)qpAc++;
+    });});
+    return{nombre:p.nombre,ci:p.ci,pts:pts,qpAc:qpAc};
+  }).sort(function(a,b){return b.pts-a.pts;}).forEach(function(p,i){
+    h3.push([i+1,p.nombre,p.ci,p.pts,p.qpAc]);
+  });
+  var ws3=XLSX.utils.aoa_to_sheet(h3);
+  ws3['!cols']=[{wch:5},{wch:22},{wch:12},{wch:14},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws3,'Eliminatoria');
+
+  /* ── HOJA 4: Especiales ── */
+  var campReal=reEsp.campeon||'Sin definir';
+  var golReal=reEsp.goleador||'Sin definir';
+  var h4=[['Pos','Nombre','CI','Campeon Elegido','Acerto Campeon','Pts Camp.','Goleador Elegido','Acerto Goleador','Pts Gol.','Pts Especiales Total']];
+  sc.sort(function(a,b){return b.ptsEs-a.ptsEs;}).forEach(function(p,i){
+    h4.push([i+1,p.nombre,p.ci,
+      p.campeon||'-', p.acCamp?'SI':'NO', p.acCamp?6:0,
+      p.goleador||'-', p.acGol?'SI':'NO', p.acGol?6:0,
+      p.ptsEs]);
+  });
+  h4.push([]);
+  h4.push(['','Campeon real:',campReal,'','Goleador real:',golReal]);
+  var ws4=XLSX.utils.aoa_to_sheet(h4);
+  ws4['!cols']=[{wch:5},{wch:22},{wch:12},{wch:18},{wch:15},{wch:10},{wch:20},{wch:15},{wch:10},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,ws4,'Especiales');
+
+  /* ── HOJA 5: Premio Exacto ── */
+  var h5=[['Pos','Nombre','CI','Exactos en Grupos','Pts en Grupos']];
+  S.participantes.map(function(p,idx2){
+    var prons=S.pronosticos[p.nombre]||{};var ex=0,pts=0;
+    allP.forEach(function(part){
+      var res=S.resultados[part.id];if(!res||res.l===''||res.l===undefined)return;
+      var pr=prons[part.id]||{l:'',v:''};var c=cPG(pr,res);if(c===null)return;
+      pts+=c;if(c===3)ex++;
+    });
+    return{nombre:p.nombre,ci:p.ci,ex:ex,pts:pts,idx2:idx2};
+  }).sort(function(a,b){return b.ex-a.ex||b.pts-a.pts||a.idx2-b.idx2;}).forEach(function(p,i){
+    h5.push([i+1,p.nombre,p.ci,p.ex,p.pts]);
+  });
+  var ws5=XLSX.utils.aoa_to_sheet(h5);
+  ws5['!cols']=[{wch:5},{wch:22},{wch:12},{wch:18},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws5,'Premio Exacto');
+
+  var fecha=new Date().toLocaleDateString('es-BO').replace(/\//g,'-');
+  XLSX.writeFile(wb,'USMEXCAN2026_'+fecha+'.xlsx');
 }
 function exportarRanking(){
   if(!S.participantes.length){alert('No hay participantes.');return;}
@@ -914,10 +1038,10 @@ function calcScores(reEsp){
     var prons=S.pronosticos[p.nombre]||{};var pronEl=S.pronElim[p.nombre]||{};var esp=S.especiales[p.nombre]||{};
     var pts=0,exG=0,ganG=0,jugG=0,ptsEl=0,ptsEs=0;
     GD.forEach(function(g){g.p.forEach(function(part){var res=S.resultados[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=prons[part.id]||{l:'',v:''};var c=cPG(pr,res);if(c===null)return;jugG++;pts+=c;if(c===3)exG++;if(c===1)ganG++;});});
-    ER.forEach(function(ronda){ronda.ps.forEach(function(part){var res=S.resElim[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=pronEl[part.id]||{l:'',v:'',alargue:'',penales:''};var c=cPE(pr,res);pts+=c.total;ptsEl+=c.total;});});
+    ER.forEach(function(ronda){ronda.ps.forEach(function(part){var res=S.resElim[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=pronEl[part.id]||{l:'',v:'',quienPasa:''};var c=cPE(pr,res);pts+=c.total;ptsEl+=c.total;});});
     if(reEsp.campeon&&esp.campeon&&esp.campeon.toLowerCase().trim()===reEsp.campeon.toLowerCase().trim()){pts+=6;ptsEs+=6;}
     if(reEsp.goleador&&esp.goleador&&esp.goleador.toLowerCase().trim()===reEsp.goleador.toLowerCase().trim()){pts+=6;ptsEs+=6;}
-    return{nombre:p.nombre,ci:p.ci,equipo:p.equipo||'',pts:pts,exG:exG,ganG:ganG,jugG:jugG,ptsEl:ptsEl,ptsEs:ptsEs};
+    return{nombre:p.nombre,ci:p.ci,equipo:p.equipo||'',pts:pts,exG:exG,ganG:ganG,jugG:jugG,ptsEl:ptsEl,ptsEs:ptsEs,campeon:esp.campeon||'',goleador:esp.goleador||'',acCamp:reEsp.campeon&&esp.campeon&&esp.campeon.toLowerCase().trim()===reEsp.campeon.toLowerCase().trim(),acGol:reEsp.goleador&&esp.goleador&&esp.goleador.toLowerCase().trim()===reEsp.goleador.toLowerCase().trim()};
   }).sort(function(a,b){return b.pts-a.pts||b.exG-a.exG;});
 }
 
