@@ -347,6 +347,12 @@ input.score{width:30px;padding:4px 2px;text-align:center;font-size:13px;font-wei
   </div>
   <div id="admin-panel" style="display:none;">
     <div class="success-box">Panel activo. Contrasena por defecto: <strong>admin2026</strong></div>
+    <div style="background:#e8f0de;border:2px solid #2d7a1f;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+      <div style="font-family:Bangers,cursive;font-size:15px;color:var(--verde);margin-bottom:6px;">&#129302; Resultados Automaticos</div>
+      <div id="auto-status" style="font-size:12px;font-weight:700;color:#444;margin-bottom:8px;">Listo para sincronizar con football-data.org</div>
+      <button class="btn btn-verde" onclick="cargarResultadosAuto();lastAutoUpdate=0;" style="margin-top:0;">&#8635; Actualizar Resultados Ahora</button>
+      <div style="font-size:10px;color:#666;margin-top:5px;">Se actualiza automaticamente cada 5 minutos al tener el panel abierto.</div>
+    </div>
     <div class="admin-stat"><span class="admin-stat-label">Participantes</span><span class="admin-stat-val" id="adm-p">0</span></div>
     <div class="admin-stat"><span class="admin-stat-label">Partidos grupos cargados</span><span class="admin-stat-val" id="adm-r">0</span></div>
     <div class="section-title">Cargar Resultados</div>
@@ -951,8 +957,15 @@ function cPE(pron,real){var r={base:0,qp:0,total:0};if(pron.l===''||pron.v===''|
 
 /* ─ ADMIN ─ */
 function mostrarAdmin(){
-  if(isAdmin()){document.getElementById('admin-locked').style.display='none';document.getElementById('admin-panel').style.display='block';actualizarAdm();}
-  else{document.getElementById('admin-locked').style.display='block';document.getElementById('admin-panel').style.display='none';}
+  if(isAdmin()){
+    document.getElementById('admin-locked').style.display='none';
+    document.getElementById('admin-panel').style.display='block';
+    actualizarAdm();
+    cargarResultadosAuto();
+  } else {
+    document.getElementById('admin-locked').style.display='block';
+    document.getElementById('admin-panel').style.display='none';
+  }
 }
 function verificarAdmin(){var p=document.getElementById('admin-pass').value;if(p===getPass()){sessionStorage.setItem('admOKsupa','1');document.getElementById('admin-error').style.display='none';document.getElementById('admin-locked').style.display='none';document.getElementById('admin-panel').style.display='block';actualizarAdm();}else{document.getElementById('admin-error').style.display='block';}}
 function cerrarAdmin(){sessionStorage.removeItem('admOKsupa');document.getElementById('admin-locked').style.display='block';document.getElementById('admin-panel').style.display='none';}
@@ -1112,6 +1125,103 @@ async function exportarRanking(){
   XLSX.utils.book_append_sheet(wb,ws,'Ranking');
   XLSX.writeFile(wb,'Ranking_USMEXCAN_'+new Date().toLocaleDateString('es-BO').replace(/\//g,'-')+'.xlsx');
 }
+
+
+/* ─ AUTO RESULTADOS desde football-data.org ─ */
+var FD_TOKEN='71f0c802094b479688715e13a2bf452d';
+var FD_URL='https://api.football-data.org/v4/competitions/WC/matches';
+
+/* Mapa de nombres de equipos API -> nuestros nombres */
+var TEAM_MAP={"mexico":"Mexico","méxico":"Mexico","south africa":"Sudafrica","korea republic":"Corea del Sur","south korea":"Corea del Sur","czechia":"Rep. Checa","czech republic":"Rep. Checa","canada":"Canada","bosnia and herzegovina":"Bosnia y Herz.","qatar":"Qatar","switzerland":"Suiza","brazil":"Brasil","morocco":"Marruecos","haiti":"Haiti","scotland":"Escocia","usa":"EE.UU.","united states":"EE.UU.","paraguay":"Paraguay","australia":"Australia","turkey":"Turquia","türkiye":"Turquia","germany":"Alemania","curaçao":"Curazao","curacao":"Curazao","côte d'ivoire":"Costa de Marfil","ivory coast":"Costa de Marfil","ecuador":"Ecuador","netherlands":"Paises Bajos","japan":"Japon","sweden":"Suecia","tunisia":"Tunez","belgium":"Belgica","egypt":"Egipto","iran":"Iran","new zealand":"Nueva Zelanda","spain":"Espana","cape verde":"Cabo Verde","cabo verde":"Cabo Verde","saudi arabia":"Arabia Saudita","uruguay":"Uruguay","france":"Francia","senegal":"Senegal","iraq":"Irak","norway":"Noruega","argentina":"Argentina","algeria":"Argelia","austria":"Austria","jordan":"Jordania","portugal":"Portugal","congo dr":"RD Congo","dr congo":"RD Congo","uzbekistan":"Uzbekistan","colombia":"Colombia","england":"Inglaterra","ghana":"Ghana","panama":"Panama","croatia":"Croacia"};
+
+function mapTeam(name){
+  if(!name)return'';
+  return TEAM_MAP[name.toLowerCase()]||name;
+}
+
+/* Construir mapa partido_id -> {home, away} desde nuestro fixture */
+function buildFixtureMap(){
+  var m={};
+  GD.forEach(function(g){g.p.forEach(function(p){
+    m[p.l+'|'+p.v]={id:p.id,dia:p.dia,h:p.h};
+    m[p.v+'|'+p.l]={id:p.id,dia:p.dia,h:p.h,rev:true};
+  });});
+  ER.forEach(function(r){r.ps.forEach(function(p){
+    m[p.l+'|'+p.v]={id:p.id,elim:true};
+  });});
+  return m;
+}
+
+var autoResultsRunning=false;
+var lastAutoUpdate=0;
+
+async function cargarResultadosAuto(){
+  if(autoResultsRunning)return;
+  var now=Date.now();
+  if(now-lastAutoUpdate<120000)return; // max cada 2 minutos
+  autoResultsRunning=true;
+  lastAutoUpdate=now;
+  
+  var statusEl=document.getElementById('auto-status');
+  if(statusEl)statusEl.textContent='⟳ Actualizando resultados...';
+  
+  try{
+    var r=await fetch(FD_URL+'?status=FINISHED',{headers:{'X-Auth-Token':FD_TOKEN}});
+    if(!r.ok){
+      if(statusEl)statusEl.textContent='⚠ Sin conexion a API';
+      autoResultsRunning=false;return;
+    }
+    var data=await r.json();
+    var matches=data.matches||[];
+    var updated=0;
+    var fixtureMap=buildFixtureMap();
+    
+    for(var i=0;i<matches.length;i++){
+      var m=matches[i];
+      if(m.status!=='FINISHED')continue;
+      var home=mapTeam(m.homeTeam&&m.homeTeam.name);
+      var away=mapTeam(m.awayTeam&&m.awayTeam.name);
+      var scoreHome=m.score&&m.score.fullTime&&m.score.fullTime.home;
+      var scoreAway=m.score&&m.score.fullTime&&m.score.fullTime.away;
+      if(scoreHome===null||scoreHome===undefined||scoreAway===null||scoreAway===undefined)continue;
+      
+      var key=home+'|'+away;
+      var entry=fixtureMap[key];
+      if(!entry)continue;
+      
+      var pid=entry.id;
+      var gl=String(entry.rev?scoreAway:scoreHome);
+      var gv=String(entry.rev?scoreHome:scoreAway);
+      
+      // Check if already saved correctly
+      var existing=entry.elim?S.resElim[pid]:S.resultados[pid];
+      if(existing&&existing.l===gl&&existing.v===gv)continue;
+      
+      if(entry.elim){
+        S.resElim[pid]={l:gl,v:gv,quienPaso:''};
+        await sbUpsert('resultados_elim',{partido_id:pid,goles_l:gl,goles_v:gv,quien_paso:''});
+      } else {
+        S.resultados[pid]={l:gl,v:gv};
+        await sbUpsert('resultados',{partido_id:pid,goles_l:gl,goles_v:gv});
+      }
+      updated++;
+    }
+    
+    if(statusEl){
+      var now2=new Date();
+      var h=String(now2.getHours()).padStart(2,'0'),mn=String(now2.getMinutes()).padStart(2,'0');
+      statusEl.textContent='✅ '+updated+' resultado'+(updated!==1?'s':'')+' actualizados — '+h+':'+mn;
+    }
+    if(updated>0){renderFixture();actualizarAdm();}
+  }catch(e){
+    console.error('Auto results error:',e);
+    if(statusEl)statusEl.textContent='⚠ Error al conectar con API';
+  }
+  autoResultsRunning=false;
+}
+
+/* Correr auto-update al abrir Admin y cada 5 min */
+setInterval(cargarResultadosAuto,300000);
 
 /* ─ INIT ─ */
 cargarTodo();
