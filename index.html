@@ -779,8 +779,22 @@ async function gP(ci,pid,campo,val){
   initDiaFilter(ci);
 }
 async function regDia(ci,dia){
-  var prons=PC[ci]||{};var sin=[];
-  GD.forEach(function(g){g.p.forEach(function(p){if(p.dia===dia){var pr=prons[p.id];if(!pr||pr.l===''||pr.v==='')sin.push(p.l+' vs '+p.v);}});});
+  var prons=PC[ci]||{};var sin=[];var sinMedNoche=[];
+  GD.forEach(function(g){g.p.forEach(function(p){
+    if(p.dia===dia){
+      var pr=prons[p.id];
+      var vacio=!pr||pr.l===''||pr.v==='';
+      if(vacio){
+        if(p.h==='00:00')sinMedNoche.push(p.l+' vs '+p.v);
+        else sin.push(p.l+' vs '+p.v);
+      }
+    }
+  });});
+  /* Bloquear registro si falta el partido de 00:00 que aun puede ingresar */
+  if(sinMedNoche.length>0){
+    alert('Antes de registrar debes ingresar el pronostico de:\n'+sinMedNoche.join('\n')+'\n\nEste partido aun esta disponible para ingresar.');
+    return;
+  }
   if(sin.length>0){
     if(!confirm('Faltan pronosticos de: '+sin.join(', ')+'\n\nLos partidos sin pronostico valen 0 puntos. Registrar igual?'))return;
   } else {
