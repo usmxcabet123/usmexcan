@@ -366,6 +366,8 @@ input.score{width:30px;padding:4px 2px;text-align:center;font-size:13px;font-wei
       <button class="btn btn-excel" onclick="exportarExcel()">&#128190; Excel Completo</button>
       <button class="btn btn-azul" onclick="exportarRanking()">&#129351; Solo Ranking</button>
     </div>
+    <div class="section-title">&#128275; Desbloquear Pronosticos</div>
+    <div id="desbloquear-container"></div>
     <div class="section-title">Gestion</div>
     <div class="warning-box">Las siguientes acciones no se pueden deshacer</div>
     <div class="btn-row">
@@ -459,8 +461,11 @@ function getMatchUTC(dia,h){
 }
 function matchStarted(dia,h){
   var t=getMatchUTC(dia,h);
-  /* Para partidos a las 00:00 BOT, dar 5 min de gracia antes de bloquear */
-  if(h==='00:00'){t=new Date(t.getTime()-5*60000);}
+  /* Para partidos a las 00:00 BOT: bloquear a las 23:50 BOT del dia anterior */
+  /* = 10 minutos antes del partido = 03:50 UTC del mismo dia */
+  if(h==='00:00'){
+    t=new Date(t.getTime()-10*60000); /* 10 min antes */
+  }
   return new Date()>=t;
 }
 var GRUPOS_END_UTC=new Date(Date.UTC(2026,5,28,2,0,0));
@@ -486,6 +491,8 @@ async function cargarTodo(){
     syncSel();
     initGF('grupo-filter-fix','grpFix');
     renderFixture();
+    /* Actualizar desbloquear si admin esta abierto */
+    if(isAdmin()){renderDesbloquear();}
   }catch(e){console.error('Error cargarTodo:',e);}
   mostrarCargando(false);
 }
@@ -703,6 +710,8 @@ function renderPronDia(ci,dia){
   GD.forEach(function(g){g.p.forEach(function(p){if(p.dia===dia)todosLosDia.push(p);});});
   var todosIniciados=todosLosDia.length>0&&todosLosDia.every(function(p){return matchStarted(dia,p.h);});
   /* Solo auto-bloquear si ya terminaron TODOS los partidos del dia (3 horas despues) */
+  /* Auto-bloquear cuando todos los partidos del dia terminaron (+3h) */
+  /* Para 00:00 BOT: considerar terminado 3h despues = 03:00 BOT */
   var todosTerminados=todosLosDia.length>0&&todosLosDia.every(function(p){
     var endTime=new Date(getMatchUTC(dia,p.h).getTime()+3*3600000);
     return new Date()>=endTime;
@@ -725,10 +734,20 @@ function renderPronDia(ci,dia){
       var ind='';
       if(played&&pr.l!==''){var pts=cPG(pr,res);ind='<span class="ri '+(pts===3?'c':pts===1?'p':'w')+'"></span>';}
       var started=matchStarted(dia,p.h);
-      var dis=guardadoDia?'disabled':'';
+      var hasPron=pr.l!==''&&pr.v!=='' ;
+      /* Bloquear si: dia guardado, O partido iniciado con prono ya ingresado */
+      /* Excepcion: 00:00 sin prono -> dejar editable hasta 10min antes */
+      var disMatch=guardadoDia||(started&&hasPron)||(started&&p.h!=='00:00');
+      var dis=disMatch?'disabled':'';
       var lockMsg='';
       if(started&&!guardadoDia){
-        lockMsg='<div style="font-size:10px;font-weight:800;color:#c47f00;margin-top:3px;">&#9888; En juego - aun podes registrar</div>';
+        if(p.h==='00:00'&&!hasPron){
+          lockMsg='<div style="font-size:10px;font-weight:800;color:#2d7a1f;margin-top:3px;">&#9989; Podes ingresar tu pronostico aun</div>';
+        } else if(p.h==='00:00'&&hasPron){
+          lockMsg='<div style="font-size:10px;font-weight:800;color:#888;margin-top:3px;">&#128274; Pronostico guardado</div>';
+        } else {
+          lockMsg='<div style="font-size:10px;font-weight:800;color:#c47f00;margin-top:3px;">&#9888; Partido iniciado - registra antes de que termine el dia</div>';
+        }
       }
       html+='<div class="match-block" style="margin-bottom:5px;"><div class="match-header"><span class="match-grupo">GRP '+g.g+'</span><span class="match-fecha">'+p.h+' BOT</span><span class="match-estadio">'+est(p.c)+'</span></div><div class="match-body"><div class="partido-wrap"><div class="equipo-blk"><div class="equipo-bandera">'+f(p.l)+'</div><div class="equipo-nombre">'+p.l+'</div></div><div class="marcador-blk" style="gap:3px;"><input type="number" class="score" min="0" max="20" value="'+pr.l+'" '+dis+' onchange="gP(\''+ci+'\',\''+p.id+'\',\'l\',this.value)"/><div class="vs-txt">-</div><input type="number" class="score" min="0" max="20" value="'+pr.v+'" '+dis+' onchange="gP(\''+ci+'\',\''+p.id+'\',\'v\',this.value)"/>'+ind+'</div><div class="equipo-blk"><div class="equipo-bandera">'+f(p.v)+'</div><div class="equipo-nombre">'+p.v+'</div></div></div>'+lockMsg+'</div></div>';
     });
@@ -1027,6 +1046,8 @@ function mostrarAdmin(){
     document.getElementById('admin-locked').style.display='none';
     document.getElementById('admin-panel').style.display='block';
     actualizarAdm();
+    /* renderDesbloquear se llama desde cargarTodo o con delay */
+    setTimeout(renderDesbloquear, 500);
     /* cargarResultadosAuto(); -- disabled, CORS blocked */
   } else {
     document.getElementById('admin-locked').style.display='block';
@@ -1040,6 +1061,92 @@ function actualizarAdm(){
   document.getElementById('adm-p').textContent=S.participantes.length;
   document.getElementById('adm-r').textContent=Object.values(S.resultados).filter(function(r){return r.l!==undefined&&r.l!=='';}).length;
 }
+async function desbloquearDiaTodos(){
+  var dia=document.getElementById('desbloquear-dia-todos').value;
+  if(!dia){alert('Elige un dia.');return;}
+  if(!confirm('Desbloquear el dia '+dia+' para TODOS los participantes?'))return;
+  mostrarCargando(true);
+  var res=await sbRest('dias_guardados?dia=eq.'+encodeURIComponent(dia),'DELETE',null,{'Prefer':'return=minimal'});
+  /* Limpiar cache local para todos */
+  S.participantes.forEach(function(p){if(PG[p.ci])delete PG[p.ci][dia];});
+  mostrarCargando(false);
+  alert('Dia '+dia+' desbloqueado para todos los participantes.');
+}
+
+async function desbloquearEtapaTodos(){
+  var etapa=document.getElementById('desbloquear-etapa-todos').value;
+  if(!etapa){alert('Elige una etapa.');return;}
+  if(!confirm('Desbloquear etapa '+etapa+' para TODOS los participantes?'))return;
+  mostrarCargando(true);
+  var res=await sbRest('etapas_guardadas?etapa=eq.'+encodeURIComponent(etapa),'DELETE',null,{'Prefer':'return=minimal'});
+  S.participantes.forEach(function(p){if(EG[p.ci])delete EG[p.ci][etapa];});
+  mostrarCargando(false);
+  alert('Etapa '+etapa+' desbloqueada para todos los participantes.');
+}
+
+async function desbloquearDia(){
+  var ci=document.getElementById('desbloquear-ci').value.trim();
+  var dia=document.getElementById('desbloquear-dia').value;
+  if(!ci||!dia){alert('Selecciona participante y dia.');return;}
+  if(!confirm('Desbloquear el dia '+dia+' para CI:'+ci+'?'))return;
+  mostrarCargando(true);
+  var res=await sbRest('dias_guardados?ci=eq.'+encodeURIComponent(ci)+'&dia=eq.'+encodeURIComponent(dia),'DELETE',null,{'Prefer':'return=minimal'});
+  /* Limpiar cache local */
+  if(PG[ci])delete PG[ci][dia];
+  mostrarCargando(false);
+  alert('Dia '+dia+' desbloqueado para CI:'+ci+'. El participante puede volver a editar.');
+}
+
+async function desbloquearEtapa(){
+  var ci=document.getElementById('desbloquear-ci').value.trim();
+  var etapa=document.getElementById('desbloquear-etapa').value;
+  if(!ci||!etapa){alert('Selecciona participante y etapa.');return;}
+  if(!confirm('Desbloquear etapa '+etapa+' para CI:'+ci+'?'))return;
+  mostrarCargando(true);
+  var res=await sbRest('etapas_guardadas?ci=eq.'+encodeURIComponent(ci)+'&etapa=eq.'+encodeURIComponent(etapa),'DELETE',null,{'Prefer':'return=minimal'});
+  if(EG[ci])delete EG[ci][etapa];
+  mostrarCargando(false);
+  alert('Etapa '+etapa+' desbloqueada para CI:'+ci+'.');
+}
+
+function renderDesbloquear(){
+  var dias=['11Jun','12Jun','13Jun','14Jun','15Jun','16Jun','17Jun','18Jun','19Jun','20Jun','21Jun','22Jun','23Jun','24Jun','25Jun','26Jun','27Jun'];
+  var etapas=[{id:'diec',n:'Dieciseisavos'},{id:'octa',n:'Octavos'},{id:'cuar',n:'Cuartos'},{id:'semi',n:'Semis'},{id:'terc',n:'Tercer puesto'},{id:'fina',n:'Gran Final'}];
+  var html='<div class="card card-rojo" style="margin-bottom:.7rem;">';
+  html+='<div style="font-family:Bangers,cursive;font-size:15px;color:#c0392b;margin-bottom:9px;">&#128275; Desbloquear Pronosticos</div>';
+
+  /* TODOS los participantes */
+  html+='<div style="background:#fdf2f2;border-radius:8px;padding:9px;margin-bottom:9px;">';
+  html+='<div style="font-size:11px;font-weight:800;color:#c0392b;margin-bottom:6px;">&#128100;&#128100; Para TODOS los participantes</div>';
+  html+='<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+  html+='<select id="desbloquear-dia-todos" style="flex:1;min-width:100px;"><option value="">Elige dia...</option>';
+  dias.forEach(function(d){html+='<option value="'+d+'">'+d+'</option>';});
+  html+='</select>';
+  html+='<button class="btn btn-naranja" style="flex:1;" onclick="desbloquearDiaTodos()">&#128275; Desbloquear Dia (todos)</button>';
+  html+='</div>';
+  html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">';
+  html+='<select id="desbloquear-etapa-todos" style="flex:1;min-width:100px;"><option value="">Elige etapa...</option>';
+  etapas.forEach(function(e){html+='<option value="'+e.id+'">'+e.n+'</option>';});
+  html+='</select>';
+  html+='<button class="btn btn-naranja" style="flex:1;" onclick="desbloquearEtapaTodos()">&#128275; Desbloquear Etapa (todos)</button>';
+  html+='</div></div>';
+
+  /* Participante individual */
+  html+='<div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;">&#128100; Para un participante especifico</div>';
+  html+='<select id="desbloquear-ci" style="margin-bottom:8px;"><option value="">Elige participante...</option>';
+  S.participantes.forEach(function(p){html+='<option value="'+p.ci+'">'+p.nombre+' (CI:'+p.ci+')</option>';});
+  html+='</select>';
+  html+='<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+  html+='<div style="flex:1;min-width:140px;"><select id="desbloquear-dia"><option value="">Dia...</option>';
+  dias.forEach(function(d){html+='<option value="'+d+'">'+d+'</option>';});
+  html+='</select><button class="btn btn-naranja" style="margin-top:6px;width:100%;" onclick="desbloquearDia()">&#128275; Dia</button></div>';
+  html+='<div style="flex:1;min-width:140px;"><select id="desbloquear-etapa"><option value="">Etapa...</option>';
+  etapas.forEach(function(e){html+='<option value="'+e.id+'">'+e.n+'</option>';});
+  html+='</select><button class="btn btn-naranja" style="margin-top:6px;width:100%;" onclick="desbloquearEtapa()">&#128275; Etapa</button></div>';
+  html+='</div></div>';
+  document.getElementById('desbloquear-container').innerHTML=html;
+}
+
 function toggleAdminResultados(){
   var div=document.getElementById('admin-resultados-container');
   if(!div)return;
