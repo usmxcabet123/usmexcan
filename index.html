@@ -734,11 +734,17 @@ function renderPronDia(ci,dia){
       var ind='';
       if(played&&pr.l!==''){var pts=cPG(pr,res);ind='<span class="ri '+(pts===3?'c':pts===1?'p':'w')+'"></span>';}
       var started=matchStarted(dia,p.h);
-      var hasPron=pr.l!==''&&pr.v!=='' ;
-      /* Bloquear si: dia guardado, O partido iniciado con prono ya ingresado */
-      /* Excepcion: 00:00 sin prono -> dejar editable hasta 10min antes */
-      var disMatch=guardadoDia||(started&&hasPron)||(started&&p.h!=='00:00');
-      var dis=disMatch?'disabled':'';
+      var hasPron=pr.l!==''&&pr.v!=='';
+      var dis='';
+      if(guardadoDia){
+        dis='disabled';
+      } else if(p.h==='00:00'){
+        /* Partido medianoche: solo bloquear si ya tiene prono completo */
+        if(hasPron)dis='disabled';
+      } else {
+        /* Partido normal: bloquear si ya inicio */
+        if(started)dis='disabled';
+      }
       var lockMsg='';
       if(started&&!guardadoDia){
         if(p.h==='00:00'&&!hasPron){
@@ -1124,6 +1130,12 @@ async function desbloquearEtapa(){
 }
 
 function renderDesbloquear(){
+  var cont2=document.getElementById('desbloquear-container');
+  if(!cont2)return;
+  if(!S.participantes||!S.participantes.length){
+    cont2.innerHTML='<div class="msg" style="padding:.5rem;">Cargando participantes...</div>';
+    setTimeout(renderDesbloquear,1000);return;
+  }
   var dias=['11Jun','12Jun','13Jun','14Jun','15Jun','16Jun','17Jun','18Jun','19Jun','20Jun','21Jun','22Jun','23Jun','24Jun','25Jun','26Jun','27Jun'];
   var etapas=[{id:'diec',n:'Dieciseisavos'},{id:'octa',n:'Octavos'},{id:'cuar',n:'Cuartos'},{id:'semi',n:'Semis'},{id:'terc',n:'Tercer puesto'},{id:'fina',n:'Gran Final'}];
   var html='<div class="card card-rojo" style="margin-bottom:.7rem;">';
