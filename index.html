@@ -128,7 +128,7 @@ input.score{width:30px;padding:4px 2px;text-align:center;font-size:13px;font-wei
 .ranking-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1.5px solid #edf2e4;}
 .ranking-row:last-child{border-bottom:none;}
 .rank-name{flex:1;font-size:12px;font-weight:800;color:#222;}
-.rank-pts{font-family:'Bangers',cursive;font-size:20px;color:var(--azul);}
+.rank-pts{font-family:'Nunito',sans-serif;font-size:28px;font-weight:900;color:var(--azul);line-height:1;}
 .rank-detail{font-size:10px;font-weight:700;color:#888;}
 .avatar{width:28px;height:28px;border-radius:50%;background:var(--azul);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;font-family:'Bangers',cursive;}
 .avatar-oro{background:var(--oro2);}.avatar-plata{background:#888;}.avatar-bronce{background:#854F0B;}
@@ -999,13 +999,15 @@ async function calcRanking(){
     if(reEsp.campeon&&esp.campeon&&esp.campeon.toLowerCase().trim()===reEsp.campeon.toLowerCase().trim()){pts+=6;ptsEs+=6;}
     if(reEsp.goleador&&esp.goleador&&esp.goleador.toLowerCase().trim()===reEsp.goleador.toLowerCase().trim()){pts+=6;ptsEs+=6;}
     return{nombre:p.nombre,ci:p.ci,equipo:p.equipo||'',pts:pts,exG:exG,ganG:ganG,jugG:jugG,ptsEl:ptsEl,ptsEs:ptsEs};
-  }).sort(function(a,b){return b.pts-a.pts||b.exG-a.exG;});
+  }).sort(function(a,b){return b.pts-a.pts||b.exG-a.exG||a.nombre.localeCompare(b.nombre);});
   /* Mostrar ranking siempre que haya participantes */
   var mm=['1','2','3'];
   var ahora=new Date();
   var hh=String(ahora.getHours()).padStart(2,'0'),mm2=String(ahora.getMinutes()).padStart(2,'0');
   var fechaStr=ahora.toLocaleDateString('es-BO')+' '+hh+':'+mm2;
-  cont.innerHTML='<div style="background:#e8f0de;border:2px solid #2d7a1f;border-radius:9px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;"><div style="font-size:11px;font-weight:800;color:#1e5c14;">&#129302; Resultados automaticos via football-data.org</div><div style="font-size:10px;font-weight:700;color:#555;">&#128337; Actualizado: '+fechaStr+'</div></div>'+'<div class="metric-grid"><div class="metric"><div class="metric-label">JUGADOS</div><div class="metric-val">'+scores[0].jugG+'</div></div><div class="metric"><div class="metric-label">JUGADORES</div><div class="metric-val">'+S.participantes.length+'</div></div><div class="metric"><div class="metric-label">LIDER</div><div class="metric-val" style="font-size:12px;">'+scores[0].nombre+'</div></div></div><div class="card">'+scores.map(function(p,i){var avCls=i===0?'avatar avatar-oro':i===1?'avatar avatar-plata':i===2?'avatar avatar-bronce':'avatar';return '<div class="ranking-row '+(i===0?'top1':'')+'"><div style="font-family:Bangers,cursive;font-size:13px;min-width:20px;color:'+(i===0?'#c8a84b':i===1?'#888':i===2?'#854F0B':'#aaa')+';">'+(i<3?mm[i]:i+1)+'</div><div class="'+avCls+'">'+p.nombre[0].toUpperCase()+'</div><div style="flex:1;"><div class="rank-name">'+p.nombre+(p.equipo?' <span class="badge badge-verde">'+f(p.equipo)+' '+p.equipo+'</span>':'')+'</div><div class="rank-detail">CI:'+p.ci+' | G:'+p.exG+'ex/'+p.ganG+'gan | El:'+p.ptsEl+'pts | Esp:'+p.ptsEs+'pts</div></div><div style="text-align:right;"><div class="rank-pts">'+p.pts+'</div><div style="font-size:9px;font-weight:700;color:#aaa;">pts</div></div></div>';}).join('')+'</div>';
+  /* Contar partidos con resultado real */
+  var totalJugados=Object.values(S.resultados).filter(function(r){return r&&r.l!==''&&r.l!==undefined;}).length;
+  cont.innerHTML='<div style="background:#e8f0de;border:2px solid #2d7a1f;border-radius:9px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;"><div style="font-size:11px;font-weight:800;color:#1e5c14;">&#129302; Resultados automaticos via football-data.org</div><div style="font-size:10px;font-weight:700;color:#555;">&#128337; Actualizado: '+fechaStr+'</div></div>'+'<div class="metric-grid"><div class="metric"><div class="metric-label">PARTIDOS JUGADOS</div><div class="metric-val">'+totalJugados+'</div></div><div class="metric"><div class="metric-label">JUGADORES</div><div class="metric-val">'+S.participantes.length+'</div></div><div class="metric"><div class="metric-label">LIDER</div><div class="metric-val" style="font-size:12px;">'+scores[0].nombre+'</div></div></div><div class="card">'+scores.map(function(p,i){var avCls=i===0?'avatar avatar-oro':i===1?'avatar avatar-plata':i===2?'avatar avatar-bronce':'avatar';return '<div class="ranking-row '+(i===0?'top1':'')+'"><div style="font-family:Bangers,cursive;font-size:13px;min-width:20px;color:'+(i===0?'#c8a84b':i===1?'#888':i===2?'#854F0B':'#aaa')+';">'+(i<3?mm[i]:i+1)+'</div><div class="'+avCls+'">'+p.nombre[0].toUpperCase()+'</div><div style="flex:1;"><div class="rank-name">'+p.nombre+(p.equipo?' <span class="badge badge-verde">'+f(p.equipo)+' '+p.equipo+'</span>':'')+'</div><div class="rank-detail">CI:'+p.ci+' | G:'+p.exG+'ex/'+p.ganG+'gan | El:'+p.ptsEl+'pts | Esp:'+p.ptsEs+'pts</div></div><div style="text-align:right;"><div class="" style="font-family:Nunito,sans-serif;font-size:28px;font-weight:900;color:var(--azul);line-height:1;">'+p.pts+'</div><div style="font-size:9px;font-weight:700;color:#aaa;">pts</div></div></div>';}).join('')+'</div>';
 }
 
 /* ─ CALCULOS ─ */
@@ -1168,7 +1170,7 @@ async function exportarExcel(){
     var acGol=reEsp.goleador&&esp.goleador&&esp.goleador.toLowerCase().trim()===reEsp.goleador.toLowerCase().trim();
     if(acCamp){pts+=6;ptsEs+=6;}if(acGol){pts+=6;ptsEs+=6;}
     return{nombre:p.nombre,ci:p.ci,equipo:p.equipo||'',pts:pts,exG:exG,ganG:ganG,jugG:jugG,ptsEl:ptsEl,ptsEs:ptsEs,campeon:esp.campeon||'',goleador:esp.goleador||'',acCamp:acCamp,acGol:acGol};
-  }).sort(function(a,b){return b.pts-a.pts||b.exG-a.exG;});
+  }).sort(function(a,b){return b.pts-a.pts||b.exG-a.exG||a.nombre.localeCompare(b.nombre);});
   var wb=XLSX.utils.book_new();
   var h1=[['Pos','Nombre','CI','Equipo','Pts TOTAL','Pts Grupos','Pts Eliminat.','Pts Especiales']];
   sc.forEach(function(p,i){h1.push([i+1,p.nombre,p.ci,p.equipo,p.pts,p.exG*3+p.ganG,p.ptsEl,p.ptsEs]);});
@@ -1204,7 +1206,7 @@ async function exportarRanking(){
     var prons=pronsByCi[p.ci]||{};var pts=0,exG=0,ganG=0,jugG=0;
     allGP.forEach(function(part){var res=S.resultados[part.id];if(!res||res.l===''||res.l===undefined)return;var pr=prons[part.id]||{l:'',v:''};var c=cPG(pr,res);if(c===null)return;jugG++;pts+=c;if(c===3)exG++;if(c===1)ganG++;});
     return{nombre:p.nombre,ci:p.ci,equipo:p.equipo||'',pts:pts,exG:exG,ganG:ganG,jugG:jugG};
-  }).sort(function(a,b){return b.pts-a.pts||b.exG-a.exG;});
+  }).sort(function(a,b){return b.pts-a.pts||b.exG-a.exG||a.nombre.localeCompare(b.nombre);});
   var wb=XLSX.utils.book_new();
   var d=[['Pos','Nombre','CI','Equipo','Puntos','Exactos','Ganador','Jugados']];
   sc.forEach(function(p,i){d.push([i+1,p.nombre,p.ci,p.equipo,p.pts,p.exG,p.ganG,p.jugG]);});
