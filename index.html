@@ -11,10 +11,7 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--fondo);-webkit-text-size-adjust:100%;}
 .app{font-family:'Nunito',sans-serif;padding:1rem;max-width:600px;margin:0 auto;padding-bottom:3rem;}
-#loading-overlay{display:none;position:fixed;inset:0;background:rgba(10,26,10,0.88);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
-#loading-overlay svg circle{animation:spin 1s linear infinite;transform-origin:30px 30px;}
-@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-#loading-overlay p{font-family:'Bangers',cursive;font-size:20px;color:#f0d080;letter-spacing:2px;}
+
 .hero{border-radius:20px;overflow:hidden;margin-bottom:1.2rem;position:relative;}
 .hero-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.9rem 1rem;text-align:center;}
 .hero-top{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:6px;}
@@ -157,14 +154,7 @@ input.score{width:30px;padding:4px 2px;text-align:center;font-size:13px;font-wei
 </style>
 </head>
 <body>
-<div id="loading-overlay">
-  <svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="30" cy="30" r="26" fill="none" stroke="#c8a84b" stroke-width="4" stroke-dasharray="40 120" stroke-linecap="round" transform-origin="30px 30px">
-      <animateTransform attributeName="transform" type="rotate" from="0 30 30" to="360 30 30" dur="1s" repeatCount="indefinite"/>
-    </circle>
-  </svg>
-  <p>CONECTANDO...</p>
-</div>
+<!-- loading indicator removed -->
 <div class="app">
 <!-- HERO -->
 <div class="hero">
@@ -485,7 +475,7 @@ async function cargarTodo(){
     var resEl=await sbGet('resultados_elim','select=*');
     S.resElim={};
     (resEl||[]).forEach(function(r){S.resElim[r.partido_id]={l:r.goles_l,v:r.goles_v,quienPaso:r.quien_paso};});
-    var reEsp=await sbGet('resultados_especiales','select=*&id=eq.1');
+    var reEsp=await sbGet('resultados_especiales','id=eq.1');
     S.resEspeciales=(reEsp&&reEsp[0])||{campeon:'',goleador:''};
     renderParticipantes();
     syncSel();
@@ -493,8 +483,11 @@ async function cargarTodo(){
     renderFixture();
     /* Actualizar desbloquear si admin esta abierto */
     if(isAdmin()){renderDesbloquear();}
-  }catch(e){console.error('Error cargarTodo:',e);}
-  mostrarCargando(false);
+  }catch(e){
+    console.error('Error cargarTodo:',e);
+  } finally {
+    mostrarCargando(false);
+  }
 }
 
 async function cargarParticipante(ci){
@@ -530,10 +523,7 @@ async function cargarParticipante(ci){
   mostrarCargando(false);
 }
 
-function mostrarCargando(show){
-  var el=document.getElementById('loading-overlay');
-  if(el)el.style.display=show?'flex':'none';
-}
+function mostrarCargando(show){/* disabled */}
 
 /* ─ FLAGS ─ */
 var FL={'Mexico':'\uD83C\uDDF2\uD83C\uDDFD','Sudafrica':'\uD83C\uDDFF\uD83C\uDDE6','Corea del Sur':'\uD83C\uDDF0\uD83C\uDDF7','Rep. Checa':'\uD83C\uDDE8\uD83C\uDDFF','Canada':'\uD83C\uDDE8\uD83C\uDDE6','Bosnia y Herz.':'\uD83C\uDDE7\uD83C\uDDE6','Qatar':'\uD83C\uDDF6\uD83C\uDDE6','Suiza':'\uD83C\uDDE8\uD83C\uDDED','Brasil':'\uD83C\uDDE7\uD83C\uDDF7','Marruecos':'\uD83C\uDDF2\uD83C\uDDE6','Haiti':'\uD83C\uDDED\uD83C\uDDF9','Escocia':'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC73\uDB40\uDC63\uDB40\uDC74\uDB40\uDC7F','EE.UU.':'\uD83C\uDDFA\uD83C\uDDF8','Paraguay':'\uD83C\uDDF5\uD83C\uDDFE','Australia':'\uD83C\uDDE6\uD83C\uDDFA','Turquia':'\uD83C\uDDF9\uD83C\uDDF7','Alemania':'\uD83C\uDDE9\uD83C\uDDEA','Curazao':'\uD83C\uDDE8\uD83C\uDDFC','Costa de Marfil':'\uD83C\uDDE8\uD83C\uDDEE','Ecuador':'\uD83C\uDDEA\uD83C\uDDE8','Paises Bajos':'\uD83C\uDDF3\uD83C\uDDF1','Japon':'\uD83C\uDDEF\uD83C\uDDF5','Suecia':'\uD83C\uDDF8\uD83C\uDDEA','Tunez':'\uD83C\uDDF9\uD83C\uDDF3','Belgica':'\uD83C\uDDE7\uD83C\uDDEA','Egipto':'\uD83C\uDDEA\uD83C\uDDEC','Iran':'\uD83C\uDDEE\uD83C\uDDF7','Nueva Zelanda':'\uD83C\uDDF3\uD83C\uDDFF','Espana':'\uD83C\uDDEA\uD83C\uDDF8','Cabo Verde':'\uD83C\uDDE8\uD83C\uDDFB','Arabia Saudita':'\uD83C\uDDF8\uD83C\uDDE6','Uruguay':'\uD83C\uDDFA\uD83C\uDDFE','Francia':'\uD83C\uDDEB\uD83C\uDDF7','Senegal':'\uD83C\uDDF8\uD83C\uDDF3','Irak':'\uD83C\uDDEE\uD83C\uDDF6','Noruega':'\uD83C\uDDF3\uD83C\uDDF4','Argentina':'\uD83C\uDDE6\uD83C\uDDF7','Argelia':'\uD83C\uDDE9\uD83C\uDDFF','Austria':'\uD83C\uDDE6\uD83C\uDDF9','Jordania':'\uD83C\uDDEF\uD83C\uDDF4','Portugal':'\uD83C\uDDF5\uD83C\uDDF9','RD Congo':'\uD83C\uDDE8\uD83C\uDDE9','Uzbekistan':'\uD83C\uDDFA\uD83C\uDDFF','Colombia':'\uD83C\uDDE8\uD83C\uDDF4','Inglaterra':'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F','Ghana':'\uD83C\uDDEC\uD83C\uDDED','Panama':'\uD83C\uDDF5\uD83C\uDDE6','Croacia':'\uD83C\uDDED\uD83C\uDDF7'};
@@ -1129,48 +1119,117 @@ async function desbloquearEtapa(){
   alert('Etapa '+etapa+' desbloqueada para CI:'+ci+'.');
 }
 
-function renderDesbloquear(){
+async function desbloquearPartido(ci, pid){
+  if(!confirm('Desbloquear pronostico de este partido para este participante?'))return;
+  mostrarCargando(true);
+  /* Borrar el pronostico especifico de la DB */
+  await sbRest('pronosticos?ci=eq.'+encodeURIComponent(ci)+'&partido_id=eq.'+encodeURIComponent(pid),'DELETE',null,{'Prefer':'return=minimal'});
+  /* Limpiar cache local */
+  if(PC[ci]&&PC[ci][pid])delete PC[ci][pid];
+  mostrarCargando(false);
+  renderDesbloquear();
+  alert('Pronostico desbloqueado. El participante puede volver a ingresar.');
+}
+
+
+var _dCiSel='todos';
+
+async function desbloquearPartido(ci, pid){
+  if(!confirm('Desbloquear pronostico de este partido para este participante?'))return;
+  await sbRest('pronosticos?ci=eq.'+encodeURIComponent(ci)+'&partido_id=eq.'+encodeURIComponent(pid),'DELETE',null,{'Prefer':'return=minimal'});
+  if(PC[ci]&&PC[ci][pid])delete PC[ci][pid];
+  renderDesbloquear(_dCiSel);
+  alert('Pronostico desbloqueado.');
+}
+
+async function desbloquearPartidoTodos(pid){
+  var p=null;GD.forEach(function(g){g.p.forEach(function(gp){if(gp.id===pid)p=gp;});});
+  var nombre=p?p.l+' vs '+p.v:pid;
+  if(!confirm('Desbloquear '+nombre+' para TODOS?'))return;
+  await sbRest('pronosticos?partido_id=eq.'+encodeURIComponent(pid),'DELETE',null,{'Prefer':'return=minimal'});
+  S.participantes.forEach(function(par){if(PC[par.ci]&&PC[par.ci][pid])delete PC[par.ci][pid];});
+  var dia='';GD.forEach(function(g){g.p.forEach(function(gp){if(gp.id===pid)dia=gp.dia;});});
+  if(dia){
+    await sbRest('dias_guardados?dia=eq.'+encodeURIComponent(dia),'DELETE',null,{'Prefer':'return=minimal'});
+    S.participantes.forEach(function(par){if(PG[par.ci])delete PG[par.ci][dia];});
+  }
+  renderDesbloquear(_dCiSel);
+  alert('Desbloqueado para todos.');
+}
+
+function selDesbloquear(val){
+  _dCiSel=val;
+  renderDesbloquear(val);
+}
+
+function renderDesbloquear(ciParam){
   var cont2=document.getElementById('desbloquear-container');
   if(!cont2)return;
   if(!S.participantes||!S.participantes.length){
-    cont2.innerHTML='<div class="msg" style="padding:.5rem;">Cargando participantes...</div>';
-    setTimeout(renderDesbloquear,1000);return;
+    cont2.innerHTML='<div class="msg">Cargando...</div>';
+    setTimeout(function(){renderDesbloquear(ciParam);},1000);return;
   }
-  var dias=['11Jun','12Jun','13Jun','14Jun','15Jun','16Jun','17Jun','18Jun','19Jun','20Jun','21Jun','22Jun','23Jun','24Jun','25Jun','26Jun','27Jun'];
-  var etapas=[{id:'diec',n:'Dieciseisavos'},{id:'octa',n:'Octavos'},{id:'cuar',n:'Cuartos'},{id:'semi',n:'Semis'},{id:'terc',n:'Tercer puesto'},{id:'fina',n:'Gran Final'}];
+  if(ciParam!==undefined)_dCiSel=ciParam;
+  var ciSel=_dCiSel||'todos';
+
   var html='<div class="card card-rojo" style="margin-bottom:.7rem;">';
-  html+='<div style="font-family:Bangers,cursive;font-size:15px;color:#c0392b;margin-bottom:9px;">&#128275; Desbloquear Pronosticos</div>';
-
-  /* TODOS los participantes */
-  html+='<div style="background:#fdf2f2;border-radius:8px;padding:9px;margin-bottom:9px;">';
-  html+='<div style="font-size:11px;font-weight:800;color:#c0392b;margin-bottom:6px;">&#128100;&#128100; Para TODOS los participantes</div>';
-  html+='<div style="display:flex;gap:6px;flex-wrap:wrap;">';
-  html+='<select id="desbloquear-dia-todos" style="flex:1;min-width:100px;"><option value="">Elige dia...</option>';
-  dias.forEach(function(d){html+='<option value="'+d+'">'+d+'</option>';});
+  html+='<div style="font-family:Bangers,cursive;font-size:15px;color:#c0392b;margin-bottom:9px;">&#128275; Desbloquear por Partido</div>';
+  html+='<label>Participante</label>';
+  html+='<select onchange="selDesbloquear(this.value)" style="margin-bottom:10px;">';
+  html+='<option value="todos"'+(ciSel==='todos'?' selected':'')+'>Todos los participantes</option>';
+  S.participantes.forEach(function(p){
+    html+='<option value="'+p.ci+'"'+(ciSel===p.ci?' selected':'')+'>'+p.nombre+' (CI:'+p.ci+')</option>';
+  });
   html+='</select>';
-  html+='<button class="btn btn-naranja" style="flex:1;" onclick="desbloquearDiaTodos()">&#128275; Desbloquear Dia (todos)</button>';
+  html+='<div id="desbloquear-partidos"></div>';
   html+='</div>';
-  html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">';
-  html+='<select id="desbloquear-etapa-todos" style="flex:1;min-width:100px;"><option value="">Elige etapa...</option>';
-  etapas.forEach(function(e){html+='<option value="'+e.id+'">'+e.n+'</option>';});
-  html+='</select>';
-  html+='<button class="btn btn-naranja" style="flex:1;" onclick="desbloquearEtapaTodos()">&#128275; Desbloquear Etapa (todos)</button>';
-  html+='</div></div>';
+  cont2.innerHTML=html;
 
-  /* Participante individual */
-  html+='<div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;">&#128100; Para un participante especifico</div>';
-  html+='<select id="desbloquear-ci" style="margin-bottom:8px;"><option value="">Elige participante...</option>';
-  S.participantes.forEach(function(p){html+='<option value="'+p.ci+'">'+p.nombre+' (CI:'+p.ci+')</option>';});
-  html+='</select>';
-  html+='<div style="display:flex;gap:8px;flex-wrap:wrap;">';
-  html+='<div style="flex:1;min-width:140px;"><select id="desbloquear-dia"><option value="">Dia...</option>';
-  dias.forEach(function(d){html+='<option value="'+d+'">'+d+'</option>';});
-  html+='</select><button class="btn btn-naranja" style="margin-top:6px;width:100%;" onclick="desbloquearDia()">&#128275; Dia</button></div>';
-  html+='<div style="flex:1;min-width:140px;"><select id="desbloquear-etapa"><option value="">Etapa...</option>';
-  etapas.forEach(function(e){html+='<option value="'+e.id+'">'+e.n+'</option>';});
-  html+='</select><button class="btn btn-naranja" style="margin-top:6px;width:100%;" onclick="desbloquearEtapa()">&#128275; Etapa</button></div>';
-  html+='</div></div>';
-  document.getElementById('desbloquear-container').innerHTML=html;
+  /* Render partidos separately to avoid quote issues */
+  var partDiv=document.getElementById('desbloquear-partidos');
+  if(!partDiv)return;
+  var pHtml='';
+  GD.forEach(function(g){
+    var res_found=false;
+    g.p.forEach(function(p){
+      var res=S.resultados[p.id]||{};
+      if(!(res.l!==undefined&&res.l!==''))return;
+      res_found=true;
+    });
+    if(!res_found)return;
+    pHtml+='<div style="font-size:11px;font-weight:800;color:var(--azul);margin:6px 0 3px;">Grupo '+g.g+'</div>';
+    g.p.forEach(function(p){
+      var res=S.resultados[p.id]||{};
+      if(!(res.l!==undefined&&res.l!==''))return;
+      pHtml+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #eee;" data-pid="'+p.id+'" data-ci="'+ciSel+'">';
+      pHtml+='<div style="flex:1;font-size:11px;font-weight:700;">'+f(p.l)+' '+p.l+' '+res.l+'-'+res.v+' '+p.v+' '+f(p.v)+'</div>';
+      if(ciSel==='todos'){
+        pHtml+='<button class="btn btn-naranja" style="font-size:10px;padding:4px 8px;" data-action="todos" data-pid="'+p.id+'">&#128275; Todos</button>';
+      } else {
+        var prono=PC[ciSel]&&PC[ciSel][p.id];
+        var tienePron=prono&&prono.l!==''&&prono.v!=='';
+        if(tienePron){
+          pHtml+='<span style="font-size:10px;font-weight:700;color:#666;margin-right:4px;">'+prono.l+'-'+prono.v+'</span>';
+          pHtml+='<button class="btn btn-naranja" style="font-size:10px;padding:4px 8px;" data-action="uno" data-ci="'+ciSel+'" data-pid="'+p.id+'">&#128275;</button>';
+        } else {
+          pHtml+='<span style="font-size:10px;font-weight:700;color:#2d7a1f;">Sin prono</span>';
+        }
+      }
+      pHtml+='</div>';
+    });
+  });
+  partDiv.innerHTML=pHtml;
+
+  /* Attach event listeners - no inline onclick needed */
+  partDiv.querySelectorAll('button[data-action]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var action=this.getAttribute('data-action');
+      var pid=this.getAttribute('data-pid');
+      var ci=this.getAttribute('data-ci');
+      if(action==='todos')desbloquearPartidoTodos(pid);
+      else desbloquearPartido(ci,pid);
+    });
+  });
 }
 
 function toggleAdminResultados(){
@@ -1228,15 +1287,9 @@ async function gR(pid,campo,val){
   if(!S.resultados[pid])S.resultados[pid]={l:'',v:''};
   S.resultados[pid][campo]=val;
   var r=S.resultados[pid];
-  /* Solo guardar cuando AMBOS scores estan completos */
-  if(r.l!==''&&r.l!==null&&r.l!==undefined&&r.v!==''&&r.v!==null&&r.v!==undefined){
-    var ok=await sbUpsert('resultados',{partido_id:pid,goles_l:String(r.l),goles_v:String(r.v)});
-    if(ok){
-      /* Mostrar confirmacion visual */
-      var inp=document.querySelector('input[onchange*="gR(\''+pid+'\',\'v\'"]');
-      if(inp){inp.style.background='#e0f0d0';setTimeout(function(){inp.style.background='';},1500);}
-      actualizarAdm();
-    }
+  if(r.l!==''&&r.l!==null&&r.v!==''&&r.v!==null){
+    await sbUpsert('resultados',{partido_id:pid,goles_l:String(r.l),goles_v:String(r.v)});
+    actualizarAdm();
   }
 }
 async function gR_e(pid,campo,val){
@@ -1456,6 +1509,8 @@ async function cargarResultadosAuto(){
 /* ─ INIT ─ */
 /* Iniciar directamente - no hay dependencia de CDN */
 cargarTodo();
+/* Safety net: ocultar loading despues de 8 segundos si algo falla */
+setTimeout(function(){mostrarCargando(false);},8000);
 /* Auto-refresh ranking cada 5 minutos */
 setInterval(function(){
   var rankTab=document.getElementById('tab-ranking');
