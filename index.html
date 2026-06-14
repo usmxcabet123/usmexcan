@@ -725,25 +725,11 @@ function renderPronDia(ci,dia){
       if(played&&pr.l!==''){var pts=cPG(pr,res);ind='<span class="ri '+(pts===3?'c':pts===1?'p':'w')+'"></span>';}
       var started=matchStarted(dia,p.h);
       var hasPron=pr.l!==''&&pr.v!=='';
-      var dis='';
-      if(guardadoDia){
-        dis='disabled';
-      } else if(p.h==='00:00'){
-        /* Partido medianoche: solo bloquear si ya tiene prono completo */
-        if(hasPron)dis='disabled';
-      } else {
-        /* Partido normal: bloquear si ya inicio */
-        if(started)dis='disabled';
-      }
+      /* Bloquear SOLO si el dia esta registrado - nunca por partido individual */
+      var dis=guardadoDia?'disabled':'';
       var lockMsg='';
       if(started&&!guardadoDia){
-        if(p.h==='00:00'&&!hasPron){
-          lockMsg='<div style="font-size:10px;font-weight:800;color:#2d7a1f;margin-top:3px;">&#9989; Podes ingresar tu pronostico aun</div>';
-        } else if(p.h==='00:00'&&hasPron){
-          lockMsg='<div style="font-size:10px;font-weight:800;color:#888;margin-top:3px;">&#128274; Pronostico guardado</div>';
-        } else {
-          lockMsg='<div style="font-size:10px;font-weight:800;color:#c47f00;margin-top:3px;">&#9888; Partido iniciado - registra antes de que termine el dia</div>';
-        }
+        lockMsg='<div style="font-size:10px;font-weight:800;color:#c47f00;margin-top:3px;">&#9888; Partido en juego - registra el dia antes de que terminen todos</div>';
       }
       html+='<div class="match-block" style="margin-bottom:5px;"><div class="match-header"><span class="match-grupo">GRP '+g.g+'</span><span class="match-fecha">'+p.h+' BOT</span><span class="match-estadio">'+est(p.c)+'</span></div><div class="match-body"><div class="partido-wrap"><div class="equipo-blk"><div class="equipo-bandera">'+f(p.l)+'</div><div class="equipo-nombre">'+p.l+'</div></div><div class="marcador-blk" style="gap:3px;"><input type="number" class="score" min="0" max="20" value="'+pr.l+'" '+dis+' onchange="gP(\''+ci+'\',\''+p.id+'\',\'l\',this.value)"/><div class="vs-txt">-</div><input type="number" class="score" min="0" max="20" value="'+pr.v+'" '+dis+' onchange="gP(\''+ci+'\',\''+p.id+'\',\'v\',this.value)"/>'+ind+'</div><div class="equipo-blk"><div class="equipo-bandera">'+f(p.v)+'</div><div class="equipo-nombre">'+p.v+'</div></div></div>'+lockMsg+'</div></div>';
     });
