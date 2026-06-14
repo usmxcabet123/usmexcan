@@ -406,7 +406,9 @@ async function sbRest(path,method,body,extraHeaders){
 
 /* Wrappers limpios */
 async function sbGet(table,query){
-  var path=table+'?select=*'+(query?'&'+query:'');
+  /* Remove any select=* from query to avoid duplicates */
+  var q=(query||'').replace('select=*&','').replace('&select=*','').replace('select=*','');
+  var path=table+'?select=*'+(q?'&'+q:'');
   var res=await sbRest(path,'GET');
   if(!res.ok)return null;
   return res.data||[];
@@ -491,7 +493,7 @@ async function cargarTodo(){
 }
 
 async function cargarParticipante(ci){
-  if(PC[ci])return; // ya cargado
+  /* Siempre recargar desde Supabase para mostrar datos actualizados */
   mostrarCargando(true);
   var prons=await sbGet('pronosticos','select=*&ci=eq.'+encodeURIComponent(ci));
   PC[ci]={};PG[ci]={};
@@ -860,10 +862,8 @@ async function gE(ci,pid,campo,val){
     if(!isNaN(pl2)&&!isNaN(pv2)&&pr.l!==''&&pr.v!==''&&pl2===pv2)elQP.style.display='';
     else{elQP.style.display='none';PE[ci][pid].quienPasa='';}
   }
-  /* Solo guardar en Supabase cuando AMBOS scores estan completos */
-  if(pr.l!==''&&pr.v!==''){
-    await sbUpsert('pronosticos_elim',{ci:ci,partido_id:pid,goles_l:pr.l,goles_v:pr.v,quien_pasa:pr.quienPasa,etapa_guardada:false});
-  }
+  /* Guardar siempre para no perder datos al cerrar la app */
+  await sbUpsert('pronosticos_elim',{ci:ci,partido_id:pid,goles_l:pr.l,goles_v:pr.v,quien_pasa:pr.quienPasa,etapa_guardada:false});
 }
 async function gQP(ci,pid,val){
   if(!PE[ci])PE[ci]={};
@@ -1276,10 +1276,9 @@ async function gR(pid,campo,val){
   if(!S.resultados[pid])S.resultados[pid]={l:'',v:''};
   S.resultados[pid][campo]=val;
   var r=S.resultados[pid];
-  if(r.l!==''&&r.l!==null&&r.v!==''&&r.v!==null){
-    await sbUpsert('resultados',{partido_id:pid,goles_l:String(r.l),goles_v:String(r.v)});
-    actualizarAdm();
-  }
+  /* Guardar siempre para no perder datos */
+  await sbUpsert('resultados',{partido_id:pid,goles_l:String(r.l),goles_v:String(r.v)});
+  actualizarAdm();
 }
 async function gR_e(pid,campo,val){
   if(!S.resElim[pid])S.resElim[pid]={l:'',v:'',quienPaso:''};
@@ -1287,10 +1286,8 @@ async function gR_e(pid,campo,val){
   var re=S.resElim[pid];
   var rl2=parseInt(re.l),rv2=parseInt(re.v);var esEmpate=!isNaN(rl2)&&!isNaN(rv2)&&re.l!==''&&re.v!==''&&rl2===rv2;
   var el=document.getElementById('adm_qp_'+pid);if(el)el.style.display=esEmpate?'':'none';
-  /* Solo guardar cuando AMBOS scores estan completos */
-  if(re.l!==''&&re.v!==''){
-    await sbUpsert('resultados_elim',{partido_id:pid,goles_l:re.l,goles_v:re.v,quien_paso:re.quienPaso||''});
-  }
+  /* Guardar siempre para no perder datos */
+  await sbUpsert('resultados_elim',{partido_id:pid,goles_l:re.l,goles_v:re.v,quien_paso:re.quienPaso||''});
 }
 async function gR_qp(pid,val){
   if(!S.resElim[pid])S.resElim[pid]={l:'',v:'',quienPaso:''};
