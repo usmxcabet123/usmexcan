@@ -950,15 +950,18 @@ function cargarResultadosPersonales(){
     g.p.forEach(function(p){
       var res=S.resultados[p.id]||{};var played=res.l!==undefined&&res.l!=='';
       var pr=prons[p.id]||{l:'',v:''};var hasPron=pr.l!==''&&pr.v!=='';
+      var hasPartial=!hasPron&&(pr.l!==''||pr.v!=='');
       var pts=played&&hasPron?cPG(pr,res):null;
       if(pts!==null){totalPts+=pts;jugados++;if(pts===3)exactos++;}
       var verdict='';
       if(!played)verdict='<span class="verdict-pendiente">&#128336; Pendiente</span>';
-      else if(!hasPron)verdict='<span class="verdict-fallo">&#10060; Sin pronostico</span>';
+      else if(!hasPron&&!hasPartial)verdict='<span class="verdict-fallo">&#10060; Sin pronostico</span>';
+      else if(hasPartial)verdict='<span class="verdict-pendiente">&#9888; Incompleto</span>';
       else if(pts===3)verdict='<span class="verdict-exacto">&#11088; Exacto +3pts</span>';
       else if(pts===1)verdict='<span class="verdict-correcto">&#9989; Correcto +1pt</span>';
       else verdict='<span class="verdict-fallo">&#10060; Fallo 0pts</span>';
-      html+='<div class="res-personal-block"><div class="res-ph"><span class="res-ph-grp">GRP '+g.g+'</span><span class="res-ph-fecha">'+p.f+' '+p.h+'</span><span class="res-ph-est">'+est(p.c)+'</span></div><div class="res-pb"><div class="res-teams-row"><div class="res-team"><div class="res-flag">'+f(p.l)+'</div><div class="res-team-name">'+p.l+'</div></div><div class="res-scores-center"><div class="res-score-real">'+(played?res.l+'-'+res.v:'? - ?')+'</div><div class="res-score-label">'+(played?'RESULTADO':'PENDIENTE')+'</div></div><div class="res-team"><div class="res-flag">'+f(p.v)+'</div><div class="res-team-name">'+p.v+'</div></div></div><div class="res-pron-row"><span class="res-pron-txt">Tu pronos: '+(hasPron?pr.l+'-'+pr.v:'Sin ingresar')+'</span>'+verdict+'</div></div></div>';
+      var pronDisplay=hasPron?(pr.l+'-'+pr.v):hasPartial?((pr.l||'?')+'-'+(pr.v||'?')):'Sin ingresar';
+      html+='<div class="res-personal-block"><div class="res-ph"><span class="res-ph-grp">GRP '+g.g+'</span><span class="res-ph-fecha">'+p.f+' '+p.h+'</span><span class="res-ph-est">'+est(p.c)+'</span></div><div class="res-pb"><div class="res-teams-row"><div class="res-team"><div class="res-flag">'+f(p.l)+'</div><div class="res-team-name">'+p.l+'</div></div><div class="res-scores-center"><div class="res-score-real">'+(played?res.l+'-'+res.v:'? - ?')+'</div><div class="res-score-label">'+(played?'RESULTADO':'PENDIENTE')+'</div></div><div class="res-team"><div class="res-flag">'+f(p.v)+'</div><div class="res-team-name">'+p.v+'</div></div></div><div class="res-pron-row"><span class="res-pron-txt">Tu pronos: '+pronDisplay+'</span>'+verdict+'</div></div></div>';
     });
     html+='</div>';
   });
