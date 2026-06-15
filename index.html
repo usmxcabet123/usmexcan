@@ -759,17 +759,27 @@ function gPDebounced(ci,pid,campo,val){
 async function gP(ci,pid,campo,val){
   if(!PC[ci])PC[ci]={};
   if(!PC[ci][pid])PC[ci][pid]={l:'',v:''};
-  /* Convertir a entero para Supabase - evita null y strings raros */
+  /* Convertir a entero */
   var numVal=val===''||val===null||val===undefined?null:parseInt(val,10);
   if(isNaN(numVal))numVal=null;
   PC[ci][pid][campo]=numVal!==null?String(numVal):'';
   var pr=PC[ci][pid];
-  var goles_l=pr.l!==''?parseInt(pr.l,10):null;
-  var goles_v=pr.v!==''?parseInt(pr.v,10):null;
   var gdia='';
   GD.forEach(function(g){g.p.forEach(function(p){if(p.id===pid)gdia=p.dia;});});
   var diaG=PG[ci]&&PG[ci][gdia]?true:false;
-  await sbUpsert('pronosticos',{ci:ci,partido_id:pid,goles_l:goles_l,goles_v:goles_v,dia_guardado:diaG});
+  /* Verificar si el registro ya existe en Supabase */
+  var existe=await sbGet('pronosticos','ci=eq.'+encodeURIComponent(ci)+'&partido_id=eq.'+encodeURIComponent(pid));
+  if(existe&&existe.length>0){
+    /* PATCH: solo actualizar el campo que cambio + dia_guardado */
+    var patchData={dia_guardado:diaG};
+    patchData[campo==='l'?'goles_l':'goles_v']=numVal;
+    await sbPatch('pronosticos','ci=eq.'+encodeURIComponent(ci)+'&partido_id=eq.'+encodeURIComponent(pid),patchData);
+  } else {
+    /* POST: nuevo registro con ambos campos */
+    var goles_l=pr.l!==''?parseInt(pr.l,10):null;
+    var goles_v=pr.v!==''?parseInt(pr.v,10):null;
+    await sbUpsert('pronosticos',{ci:ci,partido_id:pid,goles_l:goles_l,goles_v:goles_v,dia_guardado:diaG});
+  }
   initDiaFilter(ci);
 }
 async function regDia(ci,dia){
