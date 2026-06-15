@@ -498,7 +498,7 @@ async function cargarParticipante(ci){
   var prons=await sbGet('pronosticos','select=*&ci=eq.'+encodeURIComponent(ci));
   PC[ci]={};PG[ci]={};
   (prons||[]).forEach(function(p){
-    PC[ci][p.partido_id]={l:p.goles_l,v:p.goles_v};
+    PC[ci][p.partido_id]={l:(p.goles_l!==null&&p.goles_l!==undefined)?String(p.goles_l):'',v:(p.goles_v!==null&&p.goles_v!==undefined)?String(p.goles_v):''};
     if(p.dia_guardado){
       GD.forEach(function(g){g.p.forEach(function(gp){if(gp.id===p.partido_id)PG[ci][gp.dia]=true;});});
     }
@@ -508,7 +508,7 @@ async function cargarParticipante(ci){
   var pronEl=await sbGet('pronosticos_elim','select=*&ci=eq.'+encodeURIComponent(ci));
   PE[ci]={};EG[ci]={};
   (pronEl||[]).forEach(function(p){
-    PE[ci][p.partido_id]={l:p.goles_l,v:p.goles_v,quienPasa:p.quien_pasa};
+    PE[ci][p.partido_id]={l:(p.goles_l!==null&&p.goles_l!==undefined)?String(p.goles_l):'',v:(p.goles_v!==null&&p.goles_v!==undefined)?String(p.goles_v):'',quienPasa:p.quien_pasa||''};
     if(p.etapa_guardada){
       ER.forEach(function(r){r.ps.forEach(function(rp){if(rp.id===p.partido_id)EG[ci][r.id]=true;});});
     }
@@ -593,9 +593,8 @@ async function seleccionarParticipante(tipo){
   var ci=document.getElementById(selId).value;
   if(!ci)return;
   CI=ci;
-  if(!PC[ci]){
-    await cargarParticipante(ci);
-  }
+  /* Siempre recargar desde Supabase para tener datos frescos */
+  await cargarParticipante(ci);
   if(tipo==='pron')cargarPronosticos();
   if(tipo==='elim')cargarEliminatoria();
   if(tipo==='esp')cargarEspeciales();
@@ -760,12 +759,17 @@ function gPDebounced(ci,pid,campo,val){
 async function gP(ci,pid,campo,val){
   if(!PC[ci])PC[ci]={};
   if(!PC[ci][pid])PC[ci][pid]={l:'',v:''};
-  PC[ci][pid][campo]=val;
+  /* Convertir a entero para Supabase - evita null y strings raros */
+  var numVal=val===''||val===null||val===undefined?null:parseInt(val,10);
+  if(isNaN(numVal))numVal=null;
+  PC[ci][pid][campo]=numVal!==null?String(numVal):'';
   var pr=PC[ci][pid];
+  var goles_l=pr.l!==''?parseInt(pr.l,10):null;
+  var goles_v=pr.v!==''?parseInt(pr.v,10):null;
   var gdia='';
   GD.forEach(function(g){g.p.forEach(function(p){if(p.id===pid)gdia=p.dia;});});
   var diaG=PG[ci]&&PG[ci][gdia]?true:false;
-  await sbUpsert('pronosticos',{ci:ci,partido_id:pid,goles_l:pr.l,goles_v:pr.v,dia_guardado:diaG});
+  await sbUpsert('pronosticos',{ci:ci,partido_id:pid,goles_l:goles_l,goles_v:goles_v,dia_guardado:diaG});
   initDiaFilter(ci);
 }
 async function regDia(ci,dia){
@@ -802,7 +806,9 @@ async function regDia(ci,dia){
   var ps=GD.reduce(function(acc,g){return acc.concat(g.p.filter(function(p){return p.dia===dia;}));},[]);
   for(var i=0;i<ps.length;i++){
     var p=ps[i];var pr=(PC[ci]&&PC[ci][p.id])||{l:'',v:''};
-    await sbUpsert('pronosticos',{ci:ci,partido_id:p.id,goles_l:pr.l,goles_v:pr.v,dia_guardado:true});
+    var gl=pr.l!==''&&pr.l!==null?parseInt(pr.l,10):null;
+    var gv=pr.v!==''&&pr.v!==null?parseInt(pr.v,10):null;
+    await sbUpsert('pronosticos',{ci:ci,partido_id:p.id,goles_l:gl,goles_v:gv,dia_guardado:true});
   }
   mostrarCargando(false);
   renderPronDia(ci,dia);initDiaFilter(ci);
@@ -874,7 +880,9 @@ async function gE(ci,pid,campo,val){
     else{elQP.style.display='none';PE[ci][pid].quienPasa='';}
   }
   /* Guardar siempre para no perder datos al cerrar la app */
-  await sbUpsert('pronosticos_elim',{ci:ci,partido_id:pid,goles_l:pr.l,goles_v:pr.v,quien_pasa:pr.quienPasa,etapa_guardada:false});
+  var gl_e=pr.l!==''&&pr.l!==null?parseInt(pr.l,10):null;
+  var gv_e=pr.v!==''&&pr.v!==null?parseInt(pr.v,10):null;
+  await sbUpsert('pronosticos_elim',{ci:ci,partido_id:pid,goles_l:gl_e,goles_v:gv_e,quien_pasa:pr.quienPasa,etapa_guardada:false});
 }
 async function gQP(ci,pid,val){
   if(!PE[ci])PE[ci]={};
@@ -892,7 +900,9 @@ async function regEtapa(ci,id){
   if(ronda){
     for(var i=0;i<ronda.ps.length;i++){
       var p=ronda.ps[i];var pr=(PE[ci]&&PE[ci][p.id])||{l:'',v:'',quienPasa:''};
-      await sbUpsert('pronosticos_elim',{ci:ci,partido_id:p.id,goles_l:pr.l,goles_v:pr.v,quien_pasa:pr.quienPasa,etapa_guardada:true});
+      var gl_r=pr.l!==''&&pr.l!==null?parseInt(pr.l,10):null;
+      var gv_r=pr.v!==''&&pr.v!==null?parseInt(pr.v,10):null;
+      await sbUpsert('pronosticos_elim',{ci:ci,partido_id:p.id,goles_l:gl_r,goles_v:gv_r,quien_pasa:pr.quienPasa,etapa_guardada:true});
     }
   }
   mostrarCargando(false);
