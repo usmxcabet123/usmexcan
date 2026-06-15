@@ -372,7 +372,7 @@ input.score{width:30px;padding:4px 2px;text-align:center;font-size:13px;font-wei
 
 <script>
 var SUPA_URL='https://vlmjkxygwyytcnkuvtng.supabase.co';
-var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsbWpreHlnd3l5dGNua3V2dG5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNDIyODksImV4cCI6MjA5NjcxODI4OX0.jVvqpiasohhKu3b5rJnpCnrz0OaH1xxp_GHpdz7zt1o';
+var SUPA_KEY='sb_publishable_JHrQKh_oFZ0XMTJmfgm8YA_6Pns4gkV';
 var ADM_KEY='usmexcan_adm_supa';
 function getPass(){return localStorage.getItem(ADM_KEY)||'admin2026';}
 function isAdmin(){return sessionStorage.getItem('admOKsupa')==='1';}
@@ -399,7 +399,7 @@ async function sbRest(path,method,body,extraHeaders){
     var data=txt?JSON.parse(txt):[];
     return{ok:true,data:data,error:null};
   }catch(e){
-    console.error('Supabase fetch error:',e.message);
+    console.error('Supabase fetch error ['+method+' '+url.substring(0,60)+']:', e.message||e);
     return{ok:false,data:null,error:e.message};
   }
 }
@@ -733,7 +733,7 @@ function renderPronDia(ci,dia){
       if(started&&!guardadoDia){
         lockMsg='<div style="font-size:10px;font-weight:800;color:#c47f00;margin-top:3px;">&#9888; Partido en juego - registra el dia antes de que terminen todos</div>';
       }
-      html+='<div class="match-block" style="margin-bottom:5px;"><div class="match-header"><span class="match-grupo">GRP '+g.g+'</span><span class="match-fecha">'+p.h+' BOT</span><span class="match-estadio">'+est(p.c)+'</span></div><div class="match-body"><div class="partido-wrap"><div class="equipo-blk"><div class="equipo-bandera">'+f(p.l)+'</div><div class="equipo-nombre">'+p.l+'</div></div><div class="marcador-blk" style="gap:3px;"><input type="number" class="score" min="0" max="20" value="'+pr.l+'" '+dis+' onchange="gP(\''+ci+'\',\''+p.id+'\',\'l\',this.value)"/><div class="vs-txt">-</div><input type="number" class="score" min="0" max="20" value="'+pr.v+'" '+dis+' onchange="gP(\''+ci+'\',\''+p.id+'\',\'v\',this.value)"/>'+ind+'</div><div class="equipo-blk"><div class="equipo-bandera">'+f(p.v)+'</div><div class="equipo-nombre">'+p.v+'</div></div></div>'+lockMsg+'</div></div>';
+      html+='<div class="match-block" style="margin-bottom:5px;"><div class="match-header"><span class="match-grupo">GRP '+g.g+'</span><span class="match-fecha">'+p.h+' BOT</span><span class="match-estadio">'+est(p.c)+'</span></div><div class="match-body"><div class="partido-wrap"><div class="equipo-blk"><div class="equipo-bandera">'+f(p.l)+'</div><div class="equipo-nombre">'+p.l+'</div></div><div class="marcador-blk" style="gap:3px;"><input type="number" class="score" min="0" max="20" value="'+pr.l+'" '+dis+' oninput="gPDebounced(\''+ci+'\',\''+p.id+'\',\'l\',this.value)"/><div class="vs-txt">-</div><input type="number" class="score" min="0" max="20" value="'+pr.v+'" '+dis+' oninput="gPDebounced(\''+ci+'\',\''+p.id+'\',\'v\',this.value)"/>'+ind+'</div><div class="equipo-blk"><div class="equipo-bandera">'+f(p.v)+'</div><div class="equipo-nombre">'+p.v+'</div></div></div>'+lockMsg+'</div></div>';
     });
     html+='</div>';
   });
@@ -750,6 +750,12 @@ function renderPronDia(ci,dia){
   var pct=tot>0?Math.round(comp/tot*100):0;
   html+='<div style="background:#f8fbf4;border:2px solid #dde8cc;border-radius:9px;padding:9px;margin-top:6px;"><div style="font-size:11px;font-weight:800;color:var(--azul);margin-bottom:4px;">Progreso: '+comp+'/'+tot+' ('+pct+'%)</div><div style="background:#dde8cc;border-radius:8px;height:7px;"><div style="background:var(--verde);height:100%;width:'+pct+'%;border-radius:8px;"></div></div></div>';
   cont.innerHTML=html;
+}
+var _gPTimer={};
+function gPDebounced(ci,pid,campo,val){
+  var key=ci+'_'+pid+'_'+campo;
+  clearTimeout(_gPTimer[key]);
+  _gPTimer[key]=setTimeout(function(){gP(ci,pid,campo,val);},800);
 }
 async function gP(ci,pid,campo,val){
   if(!PC[ci])PC[ci]={};
@@ -831,7 +837,7 @@ function renderEtapa(ci,id){
     html+='<div class="elim-match"><div class="elim-header"><span class="elim-ronda">'+ronda.n+'</span><span class="match-fecha">'+p.f+' '+p.h+' BOT</span><span class="match-estadio">'+est(p.c)+'</span></div><div class="elim-body">';
     html+='<div class="elim-teams"><div class="elim-team"><div class="elim-flag">'+f(p.l)+'</div><div class="elim-name">'+p.l+'</div></div><div class="elim-center">';
     if(played)html+='<div class="elim-result-show">'+res.l+'-'+res.v+'</div><div style="font-size:9px;font-weight:800;color:#888;">RESULTADO</div>';
-    else html+='<div class="elim-scores"><input type="number" class="score" min="0" max="20" value="'+pr.l+'" '+dis+' id="scl_'+p.id+'" onchange="gE(\''+ci+'\',\''+p.id+'\',\'l\',this.value)"/><div class="elim-vs">-</div><input type="number" class="score" min="0" max="20" value="'+pr.v+'" '+dis+' id="scv_'+p.id+'" onchange="gE(\''+ci+'\',\''+p.id+'\',\'v\',this.value)"/></div><div style="font-size:9px;font-weight:700;color:var(--azul);margin-top:2px;">1pt res | 3pt exacto</div>';
+    else html+='<div class="elim-scores"><input type="number" class="score" min="0" max="20" value="'+pr.l+'" '+dis+' id="scl_'+p.id+'" oninput="gEDebounced(\''+ci+'\',\''+p.id+'\',\'l\',this.value)"/><div class="elim-vs">-</div><input type="number" class="score" min="0" max="20" value="'+pr.v+'" '+dis+' id="scv_'+p.id+'" oninput="gEDebounced(\''+ci+'\',\''+p.id+'\',\'v\',this.value)"/></div><div style="font-size:9px;font-weight:700;color:var(--azul);margin-top:2px;">1pt res | 3pt exacto</div>';
     html+='</div><div class="elim-team"><div class="elim-flag">'+f(p.v)+'</div><div class="elim-name">'+p.v+'</div></div></div>';
     if(ronda.pa){
       var pl2=parseInt(pr.l),pv2=parseInt(pr.v);
