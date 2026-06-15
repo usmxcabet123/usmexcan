@@ -154,7 +154,7 @@ input.score{width:30px;padding:4px 2px;text-align:center;font-size:13px;font-wei
 </style>
 </head>
 <body>
-<!-- loading indicator removed -->
+<div id="loading-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:12px;"><div style="width:48px;height:48px;border:5px solid #fff;border-top-color:#f5c518;border-radius:50%;animation:spin 0.8s linear infinite;"></div><div style="color:#fff;font-family:Bangers,cursive;font-size:20px;letter-spacing:2px;">Guardando...</div></div><style>@keyframes spin{to{transform:rotate(360deg);}}</style>
 <div class="app">
 <!-- HERO -->
 <div class="hero">
@@ -372,7 +372,7 @@ input.score{width:30px;padding:4px 2px;text-align:center;font-size:13px;font-wei
 
 <script>
 var SUPA_URL='https://vlmjkxygwyytcnkuvtng.supabase.co';
-var SUPA_KEY='sb_publishable_JHrQKh_oFZ0XMTJmfgm8YA_6Pns4gkV';
+var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsbWpreHlnd3l5dGNua3V2dG5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNDIyODksImV4cCI6MjA5NjcxODI4OX0.jVvqpiasohhKu3b5rJnpCnrz0OaH1xxp_GHpdz7zt1o';
 var ADM_KEY='usmexcan_adm_supa';
 function getPass(){return localStorage.getItem(ADM_KEY)||'admin2026';}
 function isAdmin(){return sessionStorage.getItem('admOKsupa')==='1';}
@@ -525,7 +525,7 @@ async function cargarParticipante(ci){
   mostrarCargando(false);
 }
 
-function mostrarCargando(show){/* disabled */}
+function mostrarCargando(show){var el=document.getElementById('loading-overlay');if(el)el.style.display=show?'flex':'none';}
 
 /* ─ FLAGS ─ */
 var FL={'Mexico':'\uD83C\uDDF2\uD83C\uDDFD','Sudafrica':'\uD83C\uDDFF\uD83C\uDDE6','Corea del Sur':'\uD83C\uDDF0\uD83C\uDDF7','Rep. Checa':'\uD83C\uDDE8\uD83C\uDDFF','Canada':'\uD83C\uDDE8\uD83C\uDDE6','Bosnia y Herz.':'\uD83C\uDDE7\uD83C\uDDE6','Qatar':'\uD83C\uDDF6\uD83C\uDDE6','Suiza':'\uD83C\uDDE8\uD83C\uDDED','Brasil':'\uD83C\uDDE7\uD83C\uDDF7','Marruecos':'\uD83C\uDDF2\uD83C\uDDE6','Haiti':'\uD83C\uDDED\uD83C\uDDF9','Escocia':'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC73\uDB40\uDC63\uDB40\uDC74\uDB40\uDC7F','EE.UU.':'\uD83C\uDDFA\uD83C\uDDF8','Paraguay':'\uD83C\uDDF5\uD83C\uDDFE','Australia':'\uD83C\uDDE6\uD83C\uDDFA','Turquia':'\uD83C\uDDF9\uD83C\uDDF7','Alemania':'\uD83C\uDDE9\uD83C\uDDEA','Curazao':'\uD83C\uDDE8\uD83C\uDDFC','Costa de Marfil':'\uD83C\uDDE8\uD83C\uDDEE','Ecuador':'\uD83C\uDDEA\uD83C\uDDE8','Paises Bajos':'\uD83C\uDDF3\uD83C\uDDF1','Japon':'\uD83C\uDDEF\uD83C\uDDF5','Suecia':'\uD83C\uDDF8\uD83C\uDDEA','Tunez':'\uD83C\uDDF9\uD83C\uDDF3','Belgica':'\uD83C\uDDE7\uD83C\uDDEA','Egipto':'\uD83C\uDDEA\uD83C\uDDEC','Iran':'\uD83C\uDDEE\uD83C\uDDF7','Nueva Zelanda':'\uD83C\uDDF3\uD83C\uDDFF','Espana':'\uD83C\uDDEA\uD83C\uDDF8','Cabo Verde':'\uD83C\uDDE8\uD83C\uDDFB','Arabia Saudita':'\uD83C\uDDF8\uD83C\uDDE6','Uruguay':'\uD83C\uDDFA\uD83C\uDDFE','Francia':'\uD83C\uDDEB\uD83C\uDDF7','Senegal':'\uD83C\uDDF8\uD83C\uDDF3','Irak':'\uD83C\uDDEE\uD83C\uDDF6','Noruega':'\uD83C\uDDF3\uD83C\uDDF4','Argentina':'\uD83C\uDDE6\uD83C\uDDF7','Argelia':'\uD83C\uDDE9\uD83C\uDDFF','Austria':'\uD83C\uDDE6\uD83C\uDDF9','Jordania':'\uD83C\uDDEF\uD83C\uDDF4','Portugal':'\uD83C\uDDF5\uD83C\uDDF9','RD Congo':'\uD83C\uDDE8\uD83C\uDDE9','Uzbekistan':'\uD83C\uDDFA\uD83C\uDDFF','Colombia':'\uD83C\uDDE8\uD83C\uDDF4','Inglaterra':'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F','Ghana':'\uD83C\uDDEC\uD83C\uDDED','Panama':'\uD83C\uDDF5\uD83C\uDDE6','Croacia':'\uD83C\uDDED\uD83C\uDDF7'};
@@ -791,12 +791,17 @@ async function regDia(ci,dia){
     if(!confirm('Registrar pronosticos del '+DIAS_INFO[dia].label+'? No podras editarlos.'))return;
   }
   mostrarCargando(true);
+  var okDia=await sbUpsert('dias_guardados',{ci:ci,dia:dia});
+  if(!okDia){
+    mostrarCargando(false);
+    alert('Error al guardar en la nube. Verifica tu conexion a internet e intenta de nuevo.');
+    return;
+  }
   if(!PG[ci])PG[ci]={};
   PG[ci][dia]=true;
-  await sbUpsert('dias_guardados',{ci:ci,dia:dia});
   var ps=GD.reduce(function(acc,g){return acc.concat(g.p.filter(function(p){return p.dia===dia;}));},[]);
   for(var i=0;i<ps.length;i++){
-    var p=ps[i];var pr=PC[ci][p.id]||{l:'',v:''};
+    var p=ps[i];var pr=(PC[ci]&&PC[ci][p.id])||{l:'',v:''};
     await sbUpsert('pronosticos',{ci:ci,partido_id:p.id,goles_l:pr.l,goles_v:pr.v,dia_guardado:true});
   }
   mostrarCargando(false);
