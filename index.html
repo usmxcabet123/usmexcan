@@ -4,7 +4,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>USMEXCAN 2026</title>
-<link href="./index_files/css2" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
 <script src="./index_files/xlsx.full.min.js.descarga"></script>
 <style>
 :root{--azul:#1a3a6e;--azul3:#0e1f3d;--oro:#c8a84b;--oro2:#a8882e;--oro3:#f0d080;--verde:#2d7a1f;--verde2:#1e5c14;--rojo:#c0392b;--fondo:#f0f4e8;}
@@ -460,7 +460,7 @@ function matchStarted(dia,h){
   }
   return new Date()>=t;
 }
-var GRUPOS_END_UTC=new Date(Date.UTC(2026,5,28,2,0,0));
+var GRUPOS_END_UTC=new Date(Date.UTC(2026,5,27,23,0,0)); /* Fase grupos terminó 27 Jun a las 19:00 BOT */
 function gruposTerminados(){return new Date()>=GRUPOS_END_UTC;}
 var ESP_DEADLINE_UTC=new Date(Date.UTC(2026,5,11,19,0,0));
 function espVencido(){return new Date()>=ESP_DEADLINE_UTC;}
@@ -549,7 +549,7 @@ var GD=[
   {g:'L',p:[{id:'l1',l:'Inglaterra',v:'Croacia',f:'Mie 17 Jun',dia:'17Jun',h:'16:00',c:'Dallas'},{id:'l2',l:'Ghana',v:'Panama',f:'Mie 17 Jun',dia:'17Jun',h:'19:00',c:'Toronto'},{id:'l3',l:'Inglaterra',v:'Ghana',f:'Mar 23 Jun',dia:'23Jun',h:'16:00',c:'Boston'},{id:'l4',l:'Panama',v:'Croacia',f:'Mar 23 Jun',dia:'23Jun',h:'19:00',c:'Toronto'},{id:'l5',l:'Croacia',v:'Ghana',f:'Sab 27 Jun',dia:'27Jun',h:'17:00',c:'Philadelphia'},{id:'l6',l:'Panama',v:'Inglaterra',f:'Sab 27 Jun',dia:'27Jun',h:'17:00',c:'Nueva Jersey'}]}
 ];
 var ER=[
-  {id:'diec',n:'Dieciseisavos',pa:true,ps:[{id:'de1',l:'2A',v:'2B',f:'Dom 28 Jun',h:'15:00',c:'Los Angeles'},{id:'de2',l:'1E',v:'2F',f:'Lun 29 Jun',h:'13:00',c:'Houston'},{id:'de3',l:'1C',v:'3ro',f:'Lun 29 Jun',h:'16:30',c:'Boston'},{id:'de4',l:'1F',v:'2C',f:'Lun 29 Jun',h:'21:00',c:'Monterrey'},{id:'de5',l:'2E',v:'2I',f:'Mar 30 Jun',h:'13:00',c:'Dallas'},{id:'de6',l:'1I',v:'3ro2',f:'Mar 30 Jun',h:'17:00',c:'Nueva Jersey'},{id:'de7',l:'1A',v:'3ro3',f:'Mar 30 Jun',h:'21:00',c:'Ciudad de Mexico'},{id:'de8',l:'1L',v:'3ro4',f:'Mie 1 Jul',h:'13:00',c:'Atlanta'},{id:'de9',l:'1D',v:'3ro5',f:'Mie 1 Jul',h:'17:00',c:'San Francisco'},{id:'de10',l:'1G',v:'3ro6',f:'Mie 1 Jul',h:'21:00',c:'Seattle'},{id:'de11',l:'2K',v:'2L',f:'Jue 2 Jul',h:'13:00',c:'Toronto'},{id:'de12',l:'1H',v:'2J',f:'Jue 2 Jul',h:'17:00',c:'Los Angeles'},{id:'de13',l:'1B',v:'3ro7',f:'Jue 2 Jul',h:'21:00',c:'Vancouver'},{id:'de14',l:'1J',v:'2H',f:'Vie 3 Jul',h:'13:00',c:'Miami'},{id:'de15',l:'1K',v:'3ro8',f:'Vie 3 Jul',h:'17:00',c:'Kansas City'},{id:'de16',l:'2D',v:'2G',f:'Vie 3 Jul',h:'21:00',c:'Dallas'}]},
+  {id:'diec',n:'Dieciseisavos',pa:true,ps:[{id:'de1',l:'2A',v:'2B',f:'Dom 28 Jun',h:'16:00',c:'Los Angeles'},{id:'de2',l:'1E',v:'2F',f:'Lun 29 Jun',h:'12:00',c:'Houston'},{id:'de3',l:'1C',v:'3ro',f:'Lun 29 Jun',h:'14:30',c:'Boston'},{id:'de4',l:'1F',v:'2C',f:'Lun 29 Jun',h:'21:00',c:'Monterrey'},{id:'de5',l:'2E',v:'2I',f:'Mar 30 Jun',h:'12:00',c:'Dallas'},{id:'de6',l:'1I',v:'3ro2',f:'Mar 30 Jun',h:'15:00',c:'Nueva Jersey'},{id:'de7',l:'1A',v:'3ro3',f:'Mar 30 Jun',h:'21:00',c:'Ciudad de Mexico'},{id:'de8',l:'1L',v:'3ro4',f:'Mie 1 Jul',h:'11:00',c:'Atlanta'},{id:'de9',l:'1D',v:'3ro5',f:'Mie 1 Jul',h:'15:00',c:'Seattle'},{id:'de10',l:'1G',v:'3ro6',f:'Mie 1 Jul',h:'20:00',c:'San Francisco'},{id:'de11',l:'2K',v:'2L',f:'Jue 2 Jul',h:'16:00',c:'Los Angeles'},{id:'de12',l:'1H',v:'2J',f:'Jue 2 Jul',h:'17:00',c:'Toronto'},{id:'de13',l:'1B',v:'3ro7',f:'Jue 2 Jul',h:'00:00',c:'Vancouver'},{id:'de14',l:'1J',v:'2H',f:'Vie 3 Jul',h:'14:00',c:'Dallas'},{id:'de15',l:'1K',v:'3ro8',f:'Vie 3 Jul',h:'17:00',c:'Miami'},{id:'de16',l:'2D',v:'2G',f:'Vie 3 Jul',h:'20:30',c:'Kansas City'}]},
   {id:'octa',n:'Octavos de final',pa:true,ps:[{id:'oc1',l:'Gde1',v:'Gde2',f:'Sab 4 Jul',h:'14:00',c:'Philadelphia'},{id:'oc2',l:'Gde3',v:'Gde4',f:'Sab 4 Jul',h:'20:00',c:'Houston'},{id:'oc3',l:'Gde5',v:'Gde6',f:'Dom 5 Jul',h:'14:00',c:'Nueva Jersey'},{id:'oc4',l:'Gde7',v:'Gde8',f:'Dom 5 Jul',h:'20:00',c:'Dallas'},{id:'oc5',l:'Gde9',v:'Gde10',f:'Lun 6 Jul',h:'14:00',c:'Seattle'},{id:'oc6',l:'Gde11',v:'Gde12',f:'Lun 6 Jul',h:'20:00',c:'Kansas City'},{id:'oc7',l:'Gde13',v:'Gde14',f:'Mar 7 Jul',h:'14:00',c:'Atlanta'},{id:'oc8',l:'Gde15',v:'Gde16',f:'Mar 7 Jul',h:'20:00',c:'Los Angeles'}]},
   {id:'cuar',n:'Cuartos de final',pa:true,ps:[{id:'cu1',l:'Goc1',v:'Goc2',f:'Vie 11 Jul',h:'16:00',c:'Dallas'},{id:'cu2',l:'Goc3',v:'Goc4',f:'Sab 12 Jul',h:'16:00',c:'Ciudad de Mexico'},{id:'cu3',l:'Goc5',v:'Goc6',f:'Sab 12 Jul',h:'20:00',c:'Los Angeles'},{id:'cu4',l:'Goc7',v:'Goc8',f:'Dom 13 Jul',h:'16:00',c:'Boston'}]},
   {id:'semi',n:'Semifinales',pa:true,ps:[{id:'se1',l:'Gcu1',v:'Gcu2',f:'Mie 16 Jul',h:'20:00',c:'Dallas'},{id:'se2',l:'Gcu3',v:'Gcu4',f:'Jue 17 Jul',h:'20:00',c:'Nueva Jersey'}]},
